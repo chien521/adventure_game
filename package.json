@@ -6,7 +6,8 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "watch:autocommit": "node scripts/auto-commit-watch.js"
   },
   "devDependencies": {
     "vite": "^8.1.1"
