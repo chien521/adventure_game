@@ -1,0 +1,19 @@
+export const winter = {
+  kind: 'core',
+  palette: { background: '#c8d5d4', fog: '#c8d5d4', ground: '#708082', structure: '#aebfc0', accent: '#fbfdf5' },
+  spawn: { x: -14, y: 2 },
+  colliders: [
+    { x: 20, y: -.5, w: 130, h: 1 },
+    { x: -18.2, y: 1.5, w: .6, h: 4 },
+    { x: 86.2, y: 1.5, w: .6, h: 4 },
+    { x: -4, y: .55, w: 1.5, h: 1.1 },
+    { x: 8, y: .55, w: 1.5, h: 1.1 },
+  ],
+  backgrounds: [],
+  zones: [{ xMin: -6, xMax: 10, camY: 5.6, camZ: 18, fov: 46 }],
+  checkpoints: [{ x: -14, y: 2 }, { x: 1, y: 2 }],
+  lever: { x: 4, y: .55, solid: true },
+  key: { id: 'winter', x: 10.5, y: 1.35 },
+  destinationX: 72,
+  exitX: 14,
+}

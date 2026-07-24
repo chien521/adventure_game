@@ -1,0 +1,31 @@
+:root { color-scheme: dark; }
+
+body { margin: 0; overflow: hidden; background: #101820; }
+#app, canvas { display: block; width: 100vw; height: 100svh; }
+canvas { position: fixed; inset: 0; z-index: 0; }
+#start { position: fixed; inset: 0; z-index: 4; display: grid; place-items: center; background: #101820; transition: opacity .7s ease; }
+#start.hidden { opacity: 0; pointer-events: none; }
+#start-content { display: grid; justify-items: center; gap: 1.6rem; }
+#controls { display: grid; gap: .45rem; color: #aebfc0; font: 500 .78rem/1.35 system-ui, sans-serif; letter-spacing: .04rem; text-align: center; }
+#controls p { margin: 0; }
+#controls kbd { display: inline-block; min-width: 1.2rem; margin: 0 .06rem; padding: .1rem .22rem; color: #e7f1f0; border: 1px solid #637f87; font: 600 .72rem/1 monospace; }
+#key-hud { position: fixed; z-index: 2; top: 1rem; left: 1rem; color: #dce7d8; font: 600 .76rem/1 system-ui, sans-serif; letter-spacing: .1rem; text-transform: uppercase; pointer-events: none; }
+#key-hud-count { color: #ffe36a; }
+#death { position: fixed; inset: 0; z-index: 5; pointer-events: none; background: #000; opacity: 0; transition: opacity .12s ease; }
+#death.visible { opacity: 1; }
+#pause { position: fixed; inset: 0; z-index: 4; display: none; place-content: center; justify-items: center; gap: .6rem; background: #091114d9; }
+#pause.visible { display: grid; }
+#pause button { min-width: 10rem; color: #d8e8e8; background: transparent; border: 1px solid #7e9ca4; padding: .55rem 1rem; font: 500 .9rem/1 system-ui, sans-serif; letter-spacing: .08rem; text-transform: uppercase; cursor: pointer; }
+#pause button:hover, #pause button:focus-visible { color: #101820; background: #d8e8e8; outline: none; }
+#ending { position: fixed; inset: 0; z-index: 4; display: grid; align-content: center; justify-items: center; gap: .25rem; color: #e7eded; background: #11191a; opacity: 0; pointer-events: none; transition: opacity 2s ease; }
+#ending.visible { opacity: 1; }
+#ending h1, #ending p { margin: 0; font-family: system-ui, sans-serif; font-weight: 500; letter-spacing: .12rem; }
+#ending h1 { font-size: 1.4rem; }
+#ending p { color: #abb7b8; font-size: .85rem; }
+#start-button { color: #d8e8e8; background: transparent; border: 1px solid #7e9ca4; padding: .6rem 2.4rem; font: 600 1.2rem/1 system-ui, sans-serif; letter-spacing: .18rem; text-transform: uppercase; cursor: pointer; }
+#start-button:hover, #start-button:focus-visible { background: #d8e8e8; color: #101820; outline: none; }
+#touch-controls { display: none; position: fixed; z-index: 3; inset: auto 0 1rem; justify-content: space-between; padding: 0 1rem; pointer-events: none; }
+.touch-half { display: flex; gap: .55rem; pointer-events: auto; }
+.touch-half button { width: 3.5rem; height: 3.5rem; border: 1px solid #8eaeb7; border-radius: 50%; color: #e7f1f0; background: #152832aa; font: 600 1.1rem/1 monospace; touch-action: none; }
+.touch-half button:active { color: #102027; background: #c2dde0; }
+@media (hover: none), (pointer: coarse) { #touch-controls { display: flex; } }

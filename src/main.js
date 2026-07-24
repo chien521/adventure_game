@@ -1,0 +1,189 @@
+import * as THREE from 'three'
+import './style.css'
+import { Game } from './core/Game.js'
+import { Input } from './core/Input.js'
+import { Player } from './player/Player.js'
+import { Camera } from './core/Camera.js'
+import { Audio } from './core/Audio.js'
+import { Checkpoint } from './core/Checkpoint.js'
+import { ChapterLoader } from './world/ChapterLoader.js'
+import { spring } from './chapters/spring.js'
+import { summer } from './chapters/summer.js'
+import { autumn } from './chapters/autumn.js'
+import { winter } from './chapters/winter.js'
+
+const app = document.querySelector('#app')
+app.innerHTML = '<div id="start"><div id="start-content"><button id="start-button" type="button">enter</button><div id="controls" aria-label="Keyboard controls"><p><kbd>A</kbd><kbd>D</kbd> or <kbd>&larr;</kbd><kbd>&rarr;</kbd> move</p><p><kbd>W</kbd> / <kbd>space</kbd> jump</p><p><kbd>E</kbd> / <kbd>shift</kbd> interact and push</p><p><kbd>escape</kbd> pause</p></div></div></div><div id="key-hud" aria-live="polite">keys <span id="key-hud-count">0</span></div><div id="death" aria-hidden="true"></div><div id="pause"><button data-pause="resume" type="button">resume</button><button data-pause="restart" type="button">restart chapter</button><button data-pause="mute" type="button">mute</button></div><div id="ending" aria-live="polite"><h1>UNDERTOW</h1><p id="ending-message">thank you for playing.</p><p id="key-count">0/4 keys</p></div><div id="touch-controls" aria-hidden="true"><div class="touch-half"><button data-input="left" aria-label="Move left">&#x2039;</button><button data-input="right" aria-label="Move right">&#x203a;</button></div><div class="touch-half"><button data-input="jump" aria-label="Jump">A</button><button data-input="grab" aria-label="Grab">B</button></div></div>'
+
+const scene = new THREE.Scene()
+const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'high-performance' })
+renderer.setPixelRatio(Math.min(devicePixelRatio, 2))
+renderer.shadowMap.enabled = true
+renderer.domElement.setAttribute('tabindex', '0')
+renderer.domElement.style.outline = 'none'
+app.prepend(renderer.domElement)
+setTimeout(() => renderer.domElement.focus(), 100)
+renderer.domElement.addEventListener('mousedown', () => renderer.domElement.focus())
+
+const input = new Input(renderer.domElement, document.querySelector('#touch-controls'))
+const audio = new Audio()
+const player = new Player(scene, input, audio, spring.spawn)
+const camera = new Camera(player)
+const loader = new ChapterLoader(scene)
+const collectedKeys = new Set()
+let chapterData = spring
+let chapter = loader.load(chapterData, player, input, audio, camera, collectedKeys)
+camera.setZones(chapterData.zones || [])
+let checkpoint = new Checkpoint(chapterData.checkpoints[0], chapter)
+let checkpointIndex = 0
+let finished = false
+let paused = false
+let ending = false
+let endingElapsed = 0
+const fallDeathY = -8
+const endingDuration = 20
+const endingWalkSpeed = 3.2
+const endingFadeStart = endingDuration - 4
+checkpoint.activate()
+
+const keyLight = new THREE.DirectionalLight('#a9cbd5', 2.1)
+keyLight.position.set(-12, 13, 8)
+keyLight.castShadow = true
+keyLight.shadow.mapSize.set(1024, 1024)
+const hemiLight = new THREE.HemisphereLight('#66818d', '#071015', 1.05)
+scene.add(keyLight, hemiLight)
+const lamp = new THREE.PointLight(spring.palette.accent, 9, 14, 2)
+lamp.position.set(9, 5, 1)
+scene.add(lamp)
+
+function loadChapter(nextChapter) {
+  chapterData = nextChapter
+  chapter = loader.load(chapterData, player, input, audio, camera, collectedKeys)
+  camera.setZones(chapterData.zones || [])
+  player.reset(chapterData.spawn)
+  checkpoint = new Checkpoint(chapterData.checkpoints[0], chapter)
+  checkpointIndex = 0
+  checkpoint.activate()
+  lamp.color.set(chapterData.palette.accent)
+  keyLight.intensity = 2.1
+  hemiLight.intensity = 1.05
+  lamp.intensity = 9
+  audio.startAmbience(chapterData.kind || 'outskirts')
+}
+
+function beginEnding() {
+  ending = true
+  endingElapsed = 0
+  audio.stopAmbience()
+  audio.startHeartbeat()
+  keyLight.intensity = .04
+  hemiLight.intensity = .05
+  lamp.intensity = 0
+  scene.background = new THREE.Color('#000000')
+  scene.fog.color.set('#000000')
+  scene.fog.near = 3
+  scene.fog.far = 9
+}
+
+let respawnGrace = 0
+function dieAtCheckpoint() {
+  audio.death()
+  camera.shake()
+  document.querySelector('#death').classList.add('visible')
+  checkpoint.respawn(player)
+  respawnGrace = .8
+  setTimeout(() => document.querySelector('#death').classList.remove('visible'), 650)
+}
+
+function restartChapter() {
+  ending = false
+  audio.death()
+  camera.shake()
+  document.querySelector('#death').classList.add('visible')
+  loadChapter(chapterData)
+  setTimeout(() => document.querySelector('#death').classList.remove('visible'), 650)
+}
+
+function finish() {
+  finished = true
+  audio.stopHeartbeat()
+  const keyCount = collectedKeys.size
+  const endingMessage = keyCount === 0 ? 'the house waits with its windows dark.' : keyCount === 1 ? 'one small light answers.' : keyCount === 2 ? 'two lights carry you through the dark.' : 'every gathered light finds its way home.'
+  document.querySelector('#ending-message').textContent = endingMessage
+  document.querySelector('#key-count').textContent = `${keyCount}/4 keys`
+  document.querySelector('#ending').classList.add('visible')
+}
+
+function setPaused(value) { paused = value; document.querySelector('#pause').classList.toggle('visible', paused); if (!paused) renderer.domElement.focus() }
+addEventListener('keydown', (event) => { if (event.code === 'Escape' && !finished && !ending) { event.preventDefault(); setPaused(!paused) } })
+document.querySelector('[data-pause="resume"]').addEventListener('click', () => setPaused(false))
+document.querySelector('[data-pause="restart"]').addEventListener('click', () => { restartChapter(); setPaused(false) })
+document.querySelector('[data-pause="mute"]').addEventListener('click', (event) => { event.currentTarget.textContent = audio.toggleMute() ? 'unmute' : 'mute' })
+
+const resize = () => { renderer.setSize(innerWidth, innerHeight); camera.resize(innerWidth, innerHeight) }
+addEventListener('resize', resize)
+resize()
+const game = new Game({
+  renderer,
+  scene,
+  camera,
+  update: (dt) => {
+    if (finished || paused) return
+    input.update()
+    if (ending) {
+      endingElapsed += dt
+      // Walk toward the house and stop at its doorstep; stand there while the dawn fade completes.
+      // Offset must clear the close house's half-width (1.2) plus the player's half-width (.28)
+      // plus a visible gap, or the player model clips into the house mesh in the final shot.
+      const arrivalX = (chapterData.destinationX ?? Infinity) - 1.8
+      player.body.x = Math.min(player.body.x + endingWalkSpeed * dt, arrivalX)
+      const walkSpeed = player.body.x < arrivalX ? endingWalkSpeed : 0
+      player.facing = 1
+      player.time += dt
+      player.rig.update(player.body.x, player.body.y, walkSpeed, 1, player.time, true)
+      if (endingElapsed > endingFadeStart) {
+        const t = Math.min(1, (endingElapsed - endingFadeStart) / (endingDuration - endingFadeStart))
+        scene.background.lerpColors(new THREE.Color('#000000'), new THREE.Color('#cfd8d6'), t)
+        scene.fog.color.copy(scene.background)
+        scene.fog.far = 9 + t * 30
+      }
+      camera.update(dt)
+      if (endingElapsed >= endingDuration) finish()
+      return
+    }
+    chapter.update(dt)
+    player.update(dt, [...chapter.colliders, ...chapter.dynamicColliders()])
+    const keyId = chapter.collectKey(player)
+    if (keyId) {
+      collectedKeys.add(keyId)
+      document.querySelector('#key-hud-count').textContent = collectedKeys.size
+    }
+    respawnGrace = Math.max(0, respawnGrace - dt)
+    if (player.body.y < fallDeathY) {
+      dieAtCheckpoint()
+      camera.update(dt)
+      return
+    }
+    if (checkpointIndex < chapterData.checkpoints.length - 1 && player.body.x > chapterData.checkpoints[checkpointIndex + 1].x) {
+      checkpointIndex += 1
+      checkpoint.position = { ...chapterData.checkpoints[checkpointIndex] }
+      checkpoint.activate()
+    }
+    if (respawnGrace <= 0 && chapter.hits(player)) dieAtCheckpoint()
+    if (chapter.reachedExit(player)) {
+      if (chapterData === spring) loadChapter(summer)
+      else if (chapterData === summer) loadChapter(autumn)
+      else if (chapterData === autumn) loadChapter(winter)
+      else beginEnding()
+    }
+    camera.update(dt)
+  },
+})
+document.querySelector('#start-button').addEventListener('click', async () => {
+  await audio.unlock()
+  audio.startAmbience(chapterData.kind || 'outskirts')
+  document.querySelector('#start').classList.add('hidden')
+  renderer.domElement.focus()
+  game.start()
+})
+console.info(`UNDERTOW build ${import.meta.env.VITE_BUILD_TAG || 'dev'}`)
