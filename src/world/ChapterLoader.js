@@ -32,19 +32,19 @@ export class ChapterLoader {
       this.group.add(mesh)
       this.colliderMeshes.set(collider, mesh)
     }
-    const addPortal = (x, facing) => {
+    const addPortal = (x, facing, y = 1.15) => {
       const portal = new THREE.Group()
       const portalColor = '#D3A4FF'
       const ring = new THREE.Mesh(new THREE.TorusGeometry(.62, .08, 6, 16), new THREE.MeshStandardMaterial({ color: portalColor, emissive: portalColor, emissiveIntensity: .9, roughness: .4 }))
       portal.add(ring)
-      portal.position.set(x + facing * .25, 1.15, .15)
+      portal.position.set(x + facing * .25, y, .15)
       this.group.add(portal)
       const light = new THREE.PointLight(portalColor, 1.8, 3.5, 2)
       light.position.set(0, .05, .85)
       portal.add(light)
       return portal
     }
-    this.exitPortal = chapter.exitX !== undefined ? addPortal(chapter.exitX, 1) : null
+    this.exitPortal = chapter.exitX !== undefined ? addPortal(chapter.exitX, 1, chapter.exitY) : null
     if (this.exitPortal) this.exitPortal.visible = false
     if (chapter.returnPortalX !== undefined) addPortal(chapter.returnPortalX, -1)
     if (chapter.kind === 'works') return this.loadWorks(chapter, player, input, audio, camera, collectedKeys)
@@ -255,22 +255,115 @@ export class ChapterLoader {
     // Climb the flying blocks, then choose the upper exit route or drop to the lower key route.
     const crushers = chapter.crushers.map((crusher) => new Crusher(this.group, crusher, '#8a5a2e'))
     const exitPortal = this.exitPortal
-    exitPortal.visible = true
+    const topBox = new Box(this.group, chapter.topBox, { min: -23, max: 23 })
+    let returnTriggerVisible = false
+    let keyTriggerVisible = false
+    let keyLeverPulls = 0
+    let portalEnabled = false
+    let elevatorSpawned = false
+    const keyStageMaterial = new THREE.MeshStandardMaterial({ color: chapter.palette.structure, emissive: chapter.palette.accent, emissiveIntensity: .35, roughness: .8 })
+    const keyStageMeshes = chapter.keyStages.map((stage) => {
+      const mesh = new THREE.Mesh(new THREE.BoxGeometry(stage.w, stage.h, .8), keyStageMaterial)
+      mesh.position.set(stage.x, stage.y, 0)
+      mesh.castShadow = true
+      mesh.visible = false
+      this.group.add(mesh)
+      return mesh
+    })
+    let keyStagesVisible = false
+    const setKeyStagesVisible = (visible) => {
+      keyStagesVisible = visible
+      keyStageMeshes.forEach((mesh) => { mesh.visible = visible })
+    }
+    const returnTrigger = new PressurePlate(this.group, chapter.returnTrigger, (pressed) => { if (pressed) activatePortal() }, { transparent: true })
+    returnTrigger.mesh.visible = false
+    const keyTrigger = new PressurePlate(this.group, chapter.keyTrigger, (pressed) => { if (pressed) spawnElevator() }, { transparent: true })
+    keyTrigger.mesh.visible = false
+    const elevator = {
+      body: { x: chapter.keyElevator.x, y: chapter.keyElevator.startY, w: chapter.keyElevator.w, h: chapter.keyElevator.h },
+      active: false,
+      mesh: new THREE.Mesh(new THREE.BoxGeometry(chapter.keyElevator.w, chapter.keyElevator.h, .9), new THREE.MeshStandardMaterial({ color: chapter.palette.structure, emissive: chapter.palette.accent, emissiveIntensity: .4, roughness: .75 })),
+      update(dt, rider) {
+        if (!this.active) {
+          const top = this.body.y + this.body.h / 2
+          this.active = Math.abs(rider.body.x - this.body.x) < this.body.w / 2 - .05 && Math.abs(rider.body.y - rider.body.hh - top) < .1
+        }
+        if (!this.active || this.body.y >= chapter.keyElevator.endY) return
+        const previousTop = this.body.y + this.body.h / 2
+        const carriesRider = Math.abs(rider.body.x - this.body.x) < this.body.w / 2 + rider.body.hw - .01 && Math.abs(rider.body.y - rider.body.hh - previousTop) < .12
+        const distance = Math.min(dt * 3.2, chapter.keyElevator.endY - this.body.y)
+        this.body.y += distance
+        if (carriesRider) { rider.body.y += distance; rider.body.vy = 0; rider.body.grounded = true }
+        this.mesh.position.y = this.body.y
+      },
+      save() { return { y: this.body.y, active: this.active } },
+      restore(snapshot) { this.body.y = snapshot.y; this.active = snapshot.active; this.mesh.position.y = this.body.y },
+    }
+    elevator.mesh.castShadow = true
+    elevator.mesh.position.set(elevator.body.x, elevator.body.y, 0)
+    this.group.add(elevator.mesh)
+    const spawnElevator = () => { elevatorSpawned = true; elevator.mesh.visible = true }
+    elevator.mesh.visible = false
+    const activatePortal = () => { portalEnabled = true; exitPortal.visible = true }
+    const topLever = new Lever(this.group, chapter.topLever, (on) => { returnTriggerVisible = on; returnTrigger.mesh.visible = on }, audio)
+    let restoring = false
+    const keyLever = new Lever(this.group, chapter.keyLever, (on) => {
+      setKeyStagesVisible(on)
+      if (!restoring) keyLeverPulls += 1
+      if (keyLeverPulls >= 5) { keyTriggerVisible = true; keyTrigger.mesh.visible = true }
+    }, audio)
 
     return {
       colliders: chapter.colliders,
       update(dt) {
         crushers.forEach((crusher) => crusher.update(dt, player))
+        const topBoxPushed = topBox.update(dt, player, input, [...chapter.colliders, topLever.collider(), returnTriggerVisible ? returnTrigger.body : null, keyTriggerVisible ? keyTrigger.body : null, elevatorSpawned ? elevator.body : null].filter(Boolean))
+        topLever.update(player, input, topBox.playerEngaged(player, input))
+        keyLever.update(player, input)
+        if (returnTriggerVisible) {
+          returnTrigger.update(topBox)
+          const blockOnReturnTrigger = Math.abs(topBox.body.x - returnTrigger.body.x) < .85 && Math.abs(topBox.body.y - (returnTrigger.body.y + .6)) < .8
+          if (blockOnReturnTrigger) activatePortal()
+        }
+        if (keyTriggerVisible) {
+          keyTrigger.update(topBox)
+          const blockOnKeyTrigger = Math.abs(topBox.body.x - keyTrigger.body.x) < .85 && Math.abs(topBox.body.y - (keyTrigger.body.y + .6)) < .8
+          if (blockOnKeyTrigger) spawnElevator()
+        }
+        if (elevatorSpawned) elevator.update(dt, player)
+        player.setPushing(topBoxPushed)
         key.update(dt)
         ambient.update(dt, camera.camera.position.x)
       },
-      dynamicColliders() { return crushers.map((crusher) => crusher.collider()).filter(Boolean) },
-      save() { return {} },
-      restore() { exitPortal.visible = true },
+      dynamicColliders() { return [topBox.collider(), topLever.collider(), keyLever.collider(), elevatorSpawned ? elevator.body : null, ...(keyStagesVisible ? chapter.keyStages : []), ...crushers.map((crusher) => crusher.collider())].filter(Boolean) },
+      save() { return { topBox: topBox.save(), topLever: topLever.save(), returnTriggerVisible, keyLever: keyLever.save(), keyLeverPulls, keyTriggerVisible, elevatorSpawned, elevator: elevator.save(), portalEnabled } },
+      restore(snapshot) {
+        topBox.restore(snapshot.topBox)
+        returnTriggerVisible = snapshot.returnTriggerVisible || false
+        returnTrigger.mesh.visible = returnTriggerVisible
+        topLever.restore(snapshot.topLever || false)
+        restoring = true
+        keyLeverPulls = snapshot.keyLeverPulls || 0
+        keyTriggerVisible = snapshot.keyTriggerVisible || false
+        keyTrigger.mesh.visible = keyTriggerVisible
+        keyLever.restore(snapshot.keyLever || false)
+        restoring = false
+        elevatorSpawned = snapshot.elevatorSpawned || false
+        elevator.mesh.visible = elevatorSpawned
+        elevator.restore(snapshot.elevator || elevator.save())
+        portalEnabled = snapshot.portalEnabled || false
+        exitPortal.visible = portalEnabled
+      },
       hits() { return false },
+      recoverFall(target) {
+        const upperGapLeft = 12.3
+        const upperGapRight = 14.7
+        if (target.body.x > upperGapLeft && target.body.x < upperGapRight) return { x: 8, y: 14.2 }
+        return null
+      },
       resetKey() { key.reset() },
       collectKey(target) { return key.collect(target) },
-      reachedExit(target) { return target.body.x > chapter.exitX },
+      reachedExit(target) { return portalEnabled && target.body.x > chapter.exitX },
     }
   }
 

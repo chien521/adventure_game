@@ -21,7 +21,7 @@ export class Camera {
   update(dt) {
     const zone = this.zones.find((z) => this.player.body.x >= z.xMin && this.player.body.x <= z.xMax)
     const targetX = this.player.body.x + this.player.facing * 2.2
-    const targetY = zone?.camY ?? Math.max(2.6, this.player.body.y + 1.4)
+    const targetY = zone?.camY ?? (this.player.body.y < 0 ? this.player.body.y + 1.4 : Math.max(2.6, this.player.body.y + 1.4))
     const targetZ = zone?.camZ ?? 15
     const targetFov = zone?.fov ?? DEFAULT_FOV
     const factor = 1 - Math.exp(-dt * 4)

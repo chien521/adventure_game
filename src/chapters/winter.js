@@ -1,7 +1,7 @@
 export const winter = {
   kind: 'core',
   palette: { background: '#FCFCFC', fog: '#FCFCFC', ground: '#708082', structure: '#aebfc0', accent: '#fbfdf5' },
-  spawn: { x: -14, y: 2 },
+  spawn: { x: -12, y: 2 },
   colliders: [
     { x: 20, y: -.5, w: 130, h: 1 },
     { x: -18.2, y: 1.5, w: .6, h: 4 },
@@ -11,7 +11,7 @@ export const winter = {
   ],
   backgrounds: [],
   zones: [{ xMin: -6, xMax: 10, camY: 5.6, camZ: 18, fov: 46 }],
-  checkpoints: [{ x: -14, y: 2 }, { x: 1, y: 2 }],
+  checkpoints: [{ x: -12, y: 2 }, { x: 1, y: 2 }],
   lever: { x: 4, y: .55, solid: true },
   key: { id: 'winter', x: 10.5, y: 1.35 },
   returnPortalX: -17,

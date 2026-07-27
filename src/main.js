@@ -105,8 +105,8 @@ function dieAtCheckpoint() {
     chapter.resetKey?.()
     updateKeyHud()
   }
-  const canyonRespawn = chapter.recoverCanyonFall?.(player)
-  checkpoint.respawn(player, canyonRespawn || checkpoint.position)
+  const fallRespawn = chapter.recoverFall?.(player) || chapter.recoverCanyonFall?.(player)
+  checkpoint.respawn(player, fallRespawn || checkpoint.position)
   respawnGrace = .8
   setTimeout(() => document.querySelector('#death').classList.remove('visible'), 650)
 }
@@ -189,7 +189,7 @@ const game = new Game({
     const previousChapter = chapterData === summer ? spring : chapterData === autumn ? summer : chapterData === winter ? autumn : null
     if (input.portalPressed && previousChapter && player.body.x < chapterData.returnPortalX) {
       chapterStates.set(chapterData, chapter.save())
-      loadChapter(previousChapter, { x: previousChapter.exitX - 1.2, y: 2 }, true)
+      loadChapter(previousChapter, previousChapter.returnEntry || { x: previousChapter.exitX - 1.2, y: 2 }, true)
       camera.update(dt)
       return
     }

@@ -46,7 +46,7 @@ export class Box {
         this.carried = false
         player.carriedBox = null
         this.body.x = Math.max(this.bounds.min, Math.min(this.bounds.max, player.body.x + player.facing * .9))
-        this.body.y = this.body.h / 2
+        this.body.y = player.body.y - player.body.hh + this.body.h / 2
         this.lastPlaced = { x: this.body.x, y: this.body.y }
         input.actionPressed = false
       } else {
@@ -159,11 +159,15 @@ export class Door {
 }
 
 export class PressurePlate {
-  constructor(scene, position, onChange) {
+  constructor(scene, position, onChange, { transparent = false } = {}) {
     this.body = { x: position.x, y: position.y, w: 1.35, h: .2 }
     this.onChange = onChange
     this.pressed = false
     this.mesh = createMesh(this.body, '#6c7d62')
+    if (transparent) {
+      this.mesh.material.transparent = true
+      this.mesh.material.opacity = .45
+    }
     scene.add(this.mesh)
     this.mesh.position.set(position.x, position.y, 0)
   }
