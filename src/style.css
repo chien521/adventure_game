@@ -6,6 +6,9 @@ canvas { position: fixed; inset: 0; z-index: 0; }
 #start { position: fixed; inset: 0; z-index: 4; display: grid; place-items: center; background: #101820; transition: opacity .7s ease; }
 #start.hidden { opacity: 0; pointer-events: none; }
 #start-content { display: grid; justify-items: center; gap: 1.6rem; }
+#chapter-select { display: grid; grid-template-columns: repeat(2, 1fr); gap: .4rem; width: 14rem; }
+#chapter-select button { color: #aebfc0; background: transparent; border: 1px solid #4f6870; padding: .45rem .6rem; font: 600 .74rem/1 system-ui, sans-serif; letter-spacing: .08rem; text-transform: uppercase; cursor: pointer; }
+#chapter-select button:hover, #chapter-select button:focus-visible { color: #101820; background: #d8e8e8; outline: none; }
 #controls { display: grid; gap: .45rem; color: #aebfc0; font: 500 .78rem/1.35 system-ui, sans-serif; letter-spacing: .04rem; text-align: center; }
 #controls p { margin: 0; }
 #controls kbd { display: inline-block; min-width: 1.2rem; margin: 0 .06rem; padding: .1rem .22rem; color: #e7f1f0; border: 1px solid #637f87; font: 600 .72rem/1 monospace; }

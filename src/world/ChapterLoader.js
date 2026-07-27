@@ -23,13 +23,30 @@ export class ChapterLoader {
     this.scene.background = new THREE.Color(chapter.palette.background)
     this.scene.fog = new THREE.Fog(chapter.palette.fog, 14, 39)
     const groundMaterial = new THREE.MeshStandardMaterial({ color: chapter.palette.ground, roughness: .92 })
+    this.colliderMeshes = new Map()
     for (const collider of chapter.colliders) {
       const mesh = new THREE.Mesh(new THREE.BoxGeometry(collider.w, collider.h, 1), groundMaterial)
       mesh.position.set(collider.x, collider.y, 0)
       mesh.castShadow = true
       mesh.receiveShadow = true
       this.group.add(mesh)
+      this.colliderMeshes.set(collider, mesh)
     }
+    const addPortal = (x, facing) => {
+      const portal = new THREE.Group()
+      const portalColor = '#D3A4FF'
+      const ring = new THREE.Mesh(new THREE.TorusGeometry(.62, .08, 6, 16), new THREE.MeshStandardMaterial({ color: portalColor, emissive: portalColor, emissiveIntensity: .9, roughness: .4 }))
+      portal.add(ring)
+      portal.position.set(x + facing * .25, 1.15, .15)
+      this.group.add(portal)
+      const light = new THREE.PointLight(portalColor, 1.8, 3.5, 2)
+      light.position.set(0, .05, .85)
+      portal.add(light)
+      return portal
+    }
+    this.exitPortal = chapter.exitX !== undefined ? addPortal(chapter.exitX, 1) : null
+    if (this.exitPortal) this.exitPortal.visible = false
+    if (chapter.returnPortalX !== undefined) addPortal(chapter.returnPortalX, -1)
     if (chapter.kind === 'works') return this.loadWorks(chapter, player, input, audio, camera, collectedKeys)
     if (chapter.kind === 'floodline') return this.loadFloodline(chapter, player, input, audio, camera, collectedKeys)
     if (chapter.kind === 'core') return this.loadCore(chapter, player, input, audio, collectedKeys)
@@ -38,7 +55,7 @@ export class ChapterLoader {
 
   createKey(chapter, collectedKeys) {
     const key = chapter.key
-    if (!key || collectedKeys.has(key.id)) return { update() {}, collect() { return null } }
+    if (!key || collectedKeys.has(key.id)) return { update() {}, collect() { return null }, reset() {} }
     const alcove = new THREE.Mesh(new THREE.BoxGeometry(1.1, 1.35, .2), new THREE.MeshStandardMaterial({ color: chapter.palette.structure, roughness: .95 }))
     alcove.position.set(key.x, key.y, -.35)
     const bulb = new THREE.Mesh(new THREE.SphereGeometry(.19, 10, 8), new THREE.MeshStandardMaterial({ color: '#ffe36a', emissive: '#f2b91f', emissiveIntensity: 2, roughness: .35 }))
@@ -50,6 +67,9 @@ export class ChapterLoader {
     this.group.add(alcove, bulb, base, light)
     let elapsed = 0
     let collected = false
+    let visible = !key.hidden
+    const setVisible = (value) => { alcove.visible = value; bulb.visible = value; base.visible = value; light.visible = value }
+    setVisible(visible)
     return {
       update(dt) {
         elapsed += dt
@@ -59,13 +79,13 @@ export class ChapterLoader {
         light.intensity = 1.9 + Math.sin(elapsed * 2.4) * .4
       },
       collect(player) {
-        if (collected || Math.hypot(player.body.x - key.x, player.body.y - key.y) > .75) return null
+        if (!visible || collected || Math.hypot(player.body.x - key.x, player.body.y - key.y) > .75) return null
         collected = true
-        bulb.visible = false
-        base.visible = false
-        light.visible = false
+        setVisible(false)
         return key.id
       },
+      reveal() { if (!collected) { visible = true; setVisible(true) } },
+      reset() { collected = false; visible = true; setVisible(true) },
     }
   }
 
@@ -74,46 +94,157 @@ export class ChapterLoader {
     const key = this.createKey(chapter, collectedKeys)
     const door = new Door(this.group, chapter.door)
     const lever = new Lever(this.group, chapter.lever, (open) => door.setOpen(open), audio)
-    const box = new Box(this.group, chapter.box, { min: chapter.sideDoor ? -27 : -22, max: 23 })
+    const box = new Box(this.group, chapter.box, { min: chapter.sideDoor ? -27 : -22, max: 23 }, chapter.boxInteractions)
     const plate = chapter.plate ? new PressurePlate(this.group, chapter.plate, (pressed) => { if (pressed) door.setOpen(true) }) : null
     const sideDoor = chapter.sideDoor ? new Door(this.group, chapter.sideDoor) : null
     const sidePlate = chapter.sidePlate ? new PressurePlate(this.group, chapter.sidePlate, (pressed) => { if (pressed) sideDoor.setOpen(true) }) : null
+    const openDoor = chapter.openDoor ? new Door(this.group, chapter.openDoor) : null
+    openDoor?.setOpen(true)
+    const hiddenTerrain = chapter.hiddenTerrain ? chapter.colliders.find((collider) => collider.x === chapter.hiddenTerrain.x && collider.y === chapter.hiddenTerrain.y && collider.w === chapter.hiddenTerrain.w && collider.h === chapter.hiddenTerrain.h) : null
+    const hiddenTerrainMesh = hiddenTerrain ? this.colliderMeshes.get(hiddenTerrain) : null
+    let hiddenTerrainLandings = 0
+    let hiddenTerrainGone = false
+    let observedLandingCount = player.landingCount
+    let portalEnabled = !chapter.portalLever
+    const portalLever = chapter.portalLever ? new Lever(this.group, chapter.portalLever, (on) => { portalEnabled = on; this.exitPortal.visible = on }, audio) : null
+    const exitPortal = this.exitPortal
+    if (portalLever) portalLever.mesh.visible = false
+    const canyonHazard = chapter.canyonHazard ? new KillVolume(this.group, chapter.canyonHazard, { visible: false }) : null
+    const hillLever = chapter.hillLever ? new Lever(this.group, chapter.hillLever, () => {}, audio) : null
     const killVolume = chapter.hazard ? new KillVolume(this.group, chapter.hazard) : null
-    const searchlight = new Searchlight(this.group, chapter.searchlight)
+    const searchlight = chapter.searchlight ? new Searchlight(this.group, chapter.searchlight) : null
     const shadeBox = chapter.shadeBox ? new Box(this.group, chapter.shadeBox, { min: chapter.shadeBox.x - .5, max: chapter.shadePlate.x + .2 }) : null
     const shadeLight = chapter.shadeLight ? new Searchlight(this.group, chapter.shadeLight) : null
     const shadeDoor = chapter.shadeDoor ? new Door(this.group, chapter.shadeDoor) : null
     const shadePlate = chapter.shadePlate ? new PressurePlate(this.group, chapter.shadePlate, (pressed) => { if (pressed) shadeDoor.setOpen(true) }) : null
-    const elevator = new THREE.Mesh(new THREE.BoxGeometry(chapter.elevator.w, chapter.elevator.h, 1), new THREE.MeshStandardMaterial({ color: chapter.palette.structure, roughness: .8 }))
-    elevator.position.set(chapter.elevator.x, chapter.elevator.y, 0)
-    this.group.add(elevator)
-    const beacon = new THREE.PointLight(chapter.palette.accent, 5, 6, 2)
-    beacon.position.set(chapter.elevator.x, 2.8, 1)
-    this.group.add(beacon)
+    if (chapter.elevator) {
+      const elevator = new THREE.Mesh(new THREE.BoxGeometry(chapter.elevator.w, chapter.elevator.h, 1), new THREE.MeshStandardMaterial({ color: chapter.palette.structure, roughness: .8 }))
+      elevator.position.set(chapter.elevator.x, chapter.elevator.y, 0)
+      this.group.add(elevator)
+      const beacon = new THREE.PointLight(chapter.palette.accent, 5, 6, 2)
+      beacon.position.set(chapter.elevator.x, 2.8, 1)
+      this.group.add(beacon)
+    }
+    const makeStage = (stage) => {
+      const mesh = new THREE.Mesh(new THREE.BoxGeometry(stage.w, stage.h, .8), new THREE.MeshStandardMaterial({ color: chapter.palette.structure, emissive: chapter.palette.accent, emissiveIntensity: .35, roughness: .8 }))
+      mesh.position.set(stage.x, stage.y, 0)
+      mesh.castShadow = true
+      mesh.visible = false
+      this.group.add(mesh)
+      return mesh
+    }
+    const hasSkyRoute = Boolean(chapter.leftLever)
+    const leftStage = hasSkyRoute ? makeStage(chapter.leftStage) : null
+    const middleStage = hasSkyRoute ? makeStage(chapter.middleStage) : null
+    const skyBlock = hasSkyRoute ? makeStage(chapter.skyBlock) : null
+    const canyonBridge = chapter.canyonBridge ? makeStage(chapter.canyonBridge) : null
+    let canyonBridgeVisible = false
+    const canyonLever = chapter.canyonLever ? new Lever(this.group, chapter.canyonLever, (on) => { canyonBridgeVisible = on; canyonBridge.visible = on }, audio, { requiresJumpAction: true, pullRange: { x: 1.7, y: 2.4 } }) : null
+    let farBankBox = null
+    let farBankBoxSpawned = false
+    const spawnFarBankBox = () => {
+      if (farBankBoxSpawned) return
+      farBankBoxSpawned = true
+      farBankBox = new Box(this.group, chapter.farBankBox, { min: 7.4, max: 23 }, chapter.boxInteractions)
+    }
+    const farBankLever = chapter.farBankLever ? new Lever(this.group, chapter.farBankLever, (on) => { if (on) spawnFarBankBox() }, audio) : null
+    let leftStageVisible = false
+    let middleStageVisible = false
+    let skyBlockVisible = false
+    let middleLever = null
+    let highLever = null
+    let postKeyBox = null
+    let postKeyBoxSpawned = false
+    const spawnPostKeyBox = () => {
+      if (postKeyBoxSpawned) return
+      postKeyBoxSpawned = true
+      postKeyBox = new Box(this.group, chapter.postKeyBox, { min: chapter.leftLever.x + .4, max: -25 }, chapter.boxInteractions)
+    }
+    const leftLever = hasSkyRoute ? new Lever(this.group, chapter.leftLever, (on) => { leftStageVisible = on; leftStage.visible = on; if (!on) { middleStageVisible = false; skyBlockVisible = false; middleStage.visible = false; skyBlock.visible = false } }, audio) : null
+    if (hasSkyRoute) {
+      middleLever = new Lever(this.group, chapter.middleLever, (on) => { middleStageVisible = on; middleStage.visible = on; if (!on) { skyBlockVisible = false; skyBlock.visible = false } }, audio)
+      highLever = new Lever(this.group, chapter.highLever, (on) => { skyBlockVisible = on; skyBlock.visible = on }, audio)
+      middleLever.mesh.visible = false
+      highLever.mesh.visible = false
+    }
     return {
-      colliders: chapter.colliders,
+      get colliders() { return hiddenTerrainGone ? chapter.colliders.filter((collider) => collider !== hiddenTerrain) : chapter.colliders },
       update(dt) {
+        if (hiddenTerrain && !hiddenTerrainGone && player.landingCount !== observedLandingCount) {
+          observedLandingCount = player.landingCount
+          const terrainTop = hiddenTerrain.y + hiddenTerrain.h / 2
+          const landedOnHiddenTerrain = Math.abs(player.body.x - hiddenTerrain.x) < hiddenTerrain.w / 2 - .05 && Math.abs((player.body.y - player.body.hh) - terrainTop) < .08
+          if (landedOnHiddenTerrain) {
+            hiddenTerrainLandings += 1
+            if (hiddenTerrainLandings >= chapter.hiddenTerrain.landingsRequired) {
+              hiddenTerrainGone = true
+              hiddenTerrainMesh.visible = false
+              portalLever.mesh.visible = true
+            }
+          }
+        }
         const engaged = box.playerEngaged(player, input) || shadeBox?.playerEngaged(player, input) || false
         lever.update(player, input, engaged)
-        const pushed = box.update(dt, player, input, [...chapter.colliders, lever.collider(), door.collider()].filter(Boolean))
+        hillLever?.update(player, input, engaged)
+        portalLever?.update(player, input, engaged)
+        canyonLever?.update(player, input, engaged)
+        farBankLever?.update(player, input, engaged)
+        if (hasSkyRoute) {
+          const keyCollected = collectedKeys.has(chapter.key.id)
+          const leftLeverWasOn = leftLever.on
+          if (!keyCollected || player.body.grounded) leftLever.update(player, input, engaged)
+          if (keyCollected && player.body.grounded && leftLeverWasOn && !leftLever.on) spawnPostKeyBox()
+          middleLever.mesh.visible = leftStageVisible
+          highLever.mesh.visible = middleStageVisible
+          if (leftStageVisible) middleLever.update(player, input, engaged)
+          if (middleStageVisible) highLever.update(player, input, engaged)
+          const blockTop = chapter.skyBlock.y + chapter.skyBlock.h / 2
+          const standingOnSkyBlock = skyBlockVisible && Math.abs(player.body.x - chapter.skyBlock.x) < chapter.skyBlock.w / 2 - .05 && Math.abs((player.body.y - player.body.hh) - blockTop) < .08
+          if (standingOnSkyBlock) { player.armBonusJump(); key.reveal() }
+        }
+        const boxBlockers = [...this.colliders, door.collider(), canyonBridgeVisible ? chapter.canyonBridge : null].filter(Boolean)
+        const pushed = box.update(dt, player, input, boxBlockers)
+        const postKeyPushed = postKeyBox?.update(dt, player, input, [...boxBlockers, box.collider()].filter(Boolean)) || false
+        const farBankPushed = farBankBox?.update(dt, player, input, [...boxBlockers, box.collider(), postKeyBox?.collider()].filter(Boolean)) || false
         const shadePushed = shadeBox?.update(dt, player, input, [...chapter.colliders, shadeDoor?.collider()].filter(Boolean)) || false
-        player.setPushing(pushed || shadePushed)
-        pushed || shadePushed ? audio.startScrape() : audio.stopScrape()
+        player.setPushing(pushed || postKeyPushed || farBankPushed || shadePushed)
+        pushed || postKeyPushed || farBankPushed || shadePushed ? audio.startScrape() : audio.stopScrape()
         plate?.update(box)
         sidePlate?.update(box)
         shadePlate?.update(shadeBox)
         const blockers = [box.collider(), shadeBox?.collider()].filter(Boolean)
-        searchlight.update(dt, player, blockers)
+        searchlight?.update(dt, player, blockers)
         shadeLight?.update(dt, player, blockers)
         key.update(dt)
         ambient.update(dt, camera.camera.position.x)
       },
-      dynamicColliders() { return [box.collider(), shadeBox?.collider(), lever.collider(), door.collider(), sideDoor?.collider(), shadeDoor?.collider()].filter(Boolean) },
-      save() { return { box: box.save(), shadeBox: shadeBox?.save(), lever: lever.save(), door: door.save(), sideDoor: sideDoor?.save(), shadeDoor: shadeDoor?.save() } },
-      restore(snapshot) { box.restore(snapshot.box); shadeBox?.restore(snapshot.shadeBox); lever.restore(snapshot.lever); door.restore(snapshot.door); if (snapshot.sideDoor !== undefined) sideDoor?.restore(snapshot.sideDoor); if (snapshot.shadeDoor !== undefined) shadeDoor?.restore(snapshot.shadeDoor) },
-      hits(target) { return (killVolume?.hits(target) || false) || searchlight.hits() || shadeLight?.hits() || false },
+      dynamicColliders() { return [box.collider(), postKeyBox?.collider(), farBankBox?.collider(), shadeBox?.collider(), lever.collider(), door.collider(), sideDoor?.collider(), openDoor?.collider(), shadeDoor?.collider(), hillLever?.collider(), portalLever?.collider(), canyonLever?.collider(), farBankLever?.collider(), leftLever?.collider(), canyonBridgeVisible ? chapter.canyonBridge : null, leftStageVisible ? chapter.leftStage : null, leftStageVisible ? middleLever?.collider() : null, middleStageVisible ? chapter.middleStage : null, middleStageVisible ? highLever?.collider() : null, skyBlockVisible ? chapter.skyBlock : null].filter(Boolean) },
+      save() { return { box: box.save(), postKeyBox: postKeyBox?.save(), postKeyBoxSpawned, farBankBox: farBankBox?.save(), farBankBoxSpawned, shadeBox: shadeBox?.save(), lever: lever.save(), door: door.save(), sideDoor: sideDoor?.save(), openDoor: openDoor?.save(), shadeDoor: shadeDoor?.save(), hillLever: hillLever?.save(), portalLever: portalLever?.save(), portalEnabled, hiddenTerrainLandings, hiddenTerrainGone, canyonLever: canyonLever?.save(), canyonBridgeVisible, leftStageVisible, middleStageVisible, skyBlockVisible, leftLever: leftLever?.save(), middleLever: middleLever?.save(), highLever: highLever?.save() } },
+      restore(snapshot) {
+        box.restore(snapshot.box); if (snapshot.postKeyBoxSpawned) { spawnPostKeyBox(); postKeyBox.restore(snapshot.postKeyBox) }; if (snapshot.farBankBoxSpawned) { spawnFarBankBox(); farBankBox.restore(snapshot.farBankBox) }; shadeBox?.restore(snapshot.shadeBox); lever.restore(snapshot.lever); door.restore(snapshot.door); if (snapshot.sideDoor !== undefined) sideDoor?.restore(snapshot.sideDoor); openDoor?.restore(snapshot.openDoor ?? true); if (snapshot.shadeDoor !== undefined) shadeDoor?.restore(snapshot.shadeDoor); hillLever?.restore(snapshot.hillLever ?? false); hiddenTerrainLandings = snapshot.hiddenTerrainLandings || 0; hiddenTerrainGone = snapshot.hiddenTerrainGone || false; observedLandingCount = player.landingCount; if (hiddenTerrainMesh) hiddenTerrainMesh.visible = !hiddenTerrainGone; if (portalLever) { portalLever.mesh.visible = hiddenTerrainGone; portalLever.restore(snapshot.portalLever ?? false) }; portalEnabled = snapshot.portalEnabled ?? portalEnabled; exitPortal.visible = portalEnabled; canyonBridgeVisible = snapshot.canyonBridgeVisible || false; if (canyonBridge) canyonBridge.visible = canyonBridgeVisible; canyonLever?.restore(snapshot.canyonLever ?? false); farBankLever?.restore(snapshot.farBankBoxSpawned ?? false)
+        if (!hasSkyRoute) return
+        leftStageVisible = snapshot.leftStageVisible || false
+        middleStageVisible = snapshot.middleStageVisible || false
+        skyBlockVisible = snapshot.skyBlockVisible || false
+        leftStage.visible = leftStageVisible; middleStage.visible = middleStageVisible; skyBlock.visible = skyBlockVisible
+        middleLever.mesh.visible = leftStageVisible; highLever.mesh.visible = middleStageVisible
+        leftLever.restore(snapshot.leftLever || false); middleLever.restore(snapshot.middleLever || false); highLever.restore(snapshot.highLever || false)
+      },
+      hits(target) { return (killVolume?.hits(target) || false) || (canyonHazard?.hits(target) || false) || (searchlight?.hits() || false) || shadeLight?.hits() || false },
+      recoverCanyonFall(target) {
+        if (!chapter.canyonRightRespawn || Math.abs(target.body.x - chapter.canyonHazard.x) > chapter.canyonHazard.w / 2) return null
+        const fromRightBank = target.body.x >= chapter.canyonHazard.x
+        const boxRecovery = fromRightBank ? chapter.canyonRightBoxRecovery : chapter.canyonBoxRecovery
+        for (const movableBox of [box, postKeyBox, farBankBox]) {
+          if (!movableBox?.falling) continue
+          const insideCanyon = Math.abs(movableBox.body.x - chapter.canyonHazard.x) < chapter.canyonHazard.w / 2 + movableBox.body.w / 2
+          if (insideCanyon) movableBox.restore({ ...boxRecovery, falling: false, fallVelocity: 0 })
+        }
+        return fromRightBank ? chapter.canyonRightRespawn : null
+      },
+      resetKey() { key.reset() },
       collectKey(target) { return key.collect(target) },
-      reachedExit(target) { return target.body.x > chapter.exitX },
+      reachedExit(target) { return portalEnabled && target.body.x > chapter.exitX },
     }
   }
 
@@ -121,86 +252,23 @@ export class ChapterLoader {
     const ambient = buildWorksAmbient(this.group, chapter)
     const key = this.createKey(chapter, collectedKeys)
 
-    // Puzzle (a): weigh the plate with a box, hold doorA open, sprint through.
-    const doorA = new Door(this.group, chapter.doorA)
-    const boxA = new Box(this.group, chapter.boxA, { min: -23, max: chapter.plateA.x + .4 })
-    const plateA = new PressurePlate(this.group, chapter.plateA, (pressed) => { if (pressed) doorA.setOpen(true) })
-
-    // Puzzle (b): time the conveyor crossing between the two crushers.
+    // Climb the flying blocks, then choose the upper exit route or drop to the lower key route.
     const crushers = chapter.crushers.map((crusher) => new Crusher(this.group, crusher, '#8a5a2e'))
-    const conveyors = chapter.conveyors.map((conveyor) => {
-      const mesh = new THREE.Mesh(new THREE.BoxGeometry(conveyor.w, .05, .95), new THREE.MeshStandardMaterial({ color: '#8a5a2e', roughness: .65 }))
-      mesh.position.set(conveyor.x, -.02, .05)
-      this.group.add(mesh)
-      return { ...conveyor, mesh }
-    })
-
-    // Puzzle (c): energize the feeder, then rush a box onto it before the relatch timer expires.
-    const doorC = new Door(this.group, chapter.doorC)
-    let doorCUnlocked = false
-    let relatch = 0
-    let feederPowered = false
-    const feeder = chapter.feederConveyor
-    const feederMaterial = new THREE.MeshStandardMaterial({ color: '#382d26', emissive: '#000000', roughness: .7 })
-    const feederMesh = new THREE.Mesh(new THREE.BoxGeometry(feeder.w, .05, .95), feederMaterial)
-    feederMesh.position.set(feeder.x, -.02, .05)
-    this.group.add(feederMesh)
-    const feederLight = new THREE.PointLight(chapter.palette.accent, 0, 3, 2)
-    feederLight.position.set(feeder.x, 1, 1)
-    this.group.add(feederLight)
-    const setFeederPower = (on) => {
-      feederPowered = on
-      feederMaterial.color.set(on ? '#72503a' : '#382d26')
-      feederMaterial.emissive.set(on ? chapter.palette.accent : '#000000')
-      feederMaterial.emissiveIntensity = on ? .35 : 0
-      feederLight.intensity = on ? 2.2 : 0
-    }
-    const powerLever = new Lever(this.group, chapter.powerLever, setFeederPower, audio)
-    const leverC = new Lever(this.group, chapter.leverC, (on) => { if (on && feederPowered && !doorCUnlocked) relatch = chapter.relatchTime }, audio)
-    const boxC = new Box(this.group, chapter.boxC, { min: chapter.leverC.x + .5, max: chapter.exitX - .5 })
-    const plateD = new PressurePlate(this.group, chapter.plateD, (pressed) => { if (pressed && relatch > 0 && !doorCUnlocked) { doorCUnlocked = true; doorC.setOpen(true) } })
-
-    const beacon = new THREE.PointLight(chapter.palette.accent, 4, 6, 2)
-    beacon.position.set(chapter.exitX - .7, 2.8, 1)
-    this.group.add(beacon)
+    const exitPortal = this.exitPortal
+    exitPortal.visible = true
 
     return {
       colliders: chapter.colliders,
       update(dt) {
-        plateA.update(boxA)
-        const pushedA = boxA.update(dt, player, input, [...chapter.colliders, doorA.collider()].filter(Boolean))
-
-        crushers.forEach((crusher) => crusher.update(dt))
-        conveyors.forEach((conveyor) => {
-          if (player.body.grounded && Math.abs(player.body.x - conveyor.x) < conveyor.w / 2 && player.body.y < 1.2) player.body.vx += conveyor.direction * dt * 7
-        })
-
-        const engaged = boxA.playerEngaged(player, input) || boxC.playerEngaged(player, input)
-        powerLever.update(player, input, engaged)
-        leverC.update(player, input, engaged)
-        if (relatch > 0 && !doorCUnlocked) relatch = Math.max(0, relatch - dt)
-        const pushedC = boxC.update(dt, player, input, [...chapter.colliders, leverC.collider(), doorC.collider()].filter(Boolean))
-        if (feederPowered && Math.abs(boxC.body.x - feeder.x) < feeder.w / 2 && boxC.body.y < 1.2) { boxC.body.x += feeder.direction * dt * 2.4; boxC.sync() }
-        plateD.update(boxC)
-
-        pushedA || pushedC ? audio.startScrape() : audio.stopScrape()
-        player.setPushing(pushedA || pushedC)
+        crushers.forEach((crusher) => crusher.update(dt, player))
         key.update(dt)
         ambient.update(dt, camera.camera.position.x)
       },
-      dynamicColliders() { return [boxA.collider(), boxC.collider(), powerLever.collider(), leverC.collider(), doorA.collider(), doorC.collider(), ...crushers.map((crusher) => crusher.collider(player))].filter(Boolean) },
-      save() { return { boxA: boxA.save(), boxC: boxC.save(), powerLever: powerLever.save(), leverC: leverC.save(), doorA: doorA.save(), doorC: doorC.save(), doorCUnlocked, relatch } },
-      restore(snapshot) {
-        boxA.restore(snapshot.boxA)
-        boxC.restore(snapshot.boxC)
-        powerLever.restore(snapshot.powerLever)
-        leverC.restore(snapshot.leverC)
-        doorA.restore(snapshot.doorA)
-        doorC.restore(snapshot.doorC)
-        doorCUnlocked = snapshot.doorCUnlocked
-        relatch = snapshot.relatch
-      },
+      dynamicColliders() { return crushers.map((crusher) => crusher.collider()).filter(Boolean) },
+      save() { return {} },
+      restore() { exitPortal.visible = true },
       hits() { return false },
+      resetKey() { key.reset() },
       collectKey(target) { return key.collect(target) },
       reachedExit(target) { return target.body.x > chapter.exitX },
     }
@@ -223,7 +291,7 @@ export class ChapterLoader {
       if (routePlateActivations === 1) routeDoor.setOpen(true)
       else { leverVisible = true; syncExitLever() }
     })
-    const keyBox = new Box(this.group, chapter.keyBox, { min: -22, max: -9 })
+    const keyBox = new Box(this.group, chapter.keyBox, { min: -22, max: -9 }, chapter.boxInteractions)
     const skyStageMaterial = new THREE.MeshStandardMaterial({ color: chapter.palette.structure, emissive: chapter.palette.accent, emissiveIntensity: .28, roughness: .8 })
     const skyStage = new THREE.Mesh(new THREE.BoxGeometry(chapter.skyStage.w, chapter.skyStage.h, .8), skyStageMaterial)
     skyStage.position.set(chapter.skyStage.x, chapter.skyStage.y, 0)
@@ -255,8 +323,9 @@ export class ChapterLoader {
         syncExitLever()
       }
     })
-    const relayBox = new Box(this.group, chapter.relayBox, { min: -4, max: chapter.canyonStage.x })
-    const farBox = new Box(this.group, chapter.farBox, { min: chapter.farBankLeftX - .55, max: chapter.farCliffX + .55 })
+    const relayBox = new Box(this.group, chapter.relayBox, { min: -4, max: chapter.canyonStage.x }, chapter.boxInteractions)
+    const farBox = new Box(this.group, chapter.farBox, { min: chapter.farBankLeftX - .55, max: chapter.farCliffX + .55 }, chapter.boxInteractions)
+    const exitPortal = this.exitPortal
     const beacon = new THREE.PointLight(chapter.palette.accent, 4, 6, 2)
     beacon.position.set(chapter.exitX - .7, 2.8, 1)
     this.group.add(beacon)
@@ -277,12 +346,7 @@ export class ChapterLoader {
         const pushed = keyBox.update(dt, player, input, [...chapter.colliders, keyDoor.collider(), routeDoor.collider()].filter(Boolean))
         const relayPushed = relayBox.update(dt, player, input, chapter.colliders)
         const farPushed = farBox.update(dt, player, input, chapter.colliders)
-        if (!relayBox.falling && relayBox.body.x > chapter.exitLever.x + relayBox.body.w / 2) relayBox.startFalling()
-        const farBoxPastLeftCliff = farBox.body.x < chapter.farBankLeftX - farBox.body.w / 2
-        const farBoxPastRightCliff = farBox.body.x > chapter.farCliffX + farBox.body.w / 2
-        if (!farBox.falling && (farBoxPastLeftCliff || farBoxPastRightCliff)) farBox.startFalling()
-        relayBox.fall(dt)
-        farBox.fall(dt)
+        exitPortal.visible = farBox.falling
         const busy = keyBox.playerEngaged(player, input) || relayBox.playerEngaged(player, input) || farBox.playerEngaged(player, input)
         if (skyStageVisible && leverVisible) exitLever.update(player, input, busy)
         player.setPushing(pushed || relayPushed || farPushed)
@@ -290,11 +354,6 @@ export class ChapterLoader {
         keyPlate.update(keyBox)
         routePlate.update(keyBox)
         relayPlate.update(relayBox)
-        const relayTop = relayBox.body.y + relayBox.body.h / 2
-        const farTop = farBox.body.y + farBox.body.h / 2
-        const standingOnRelayBox = !relayBox.falling && Math.abs(player.body.x - relayBox.body.x) < relayBox.body.w / 2 - .05 && Math.abs((player.body.y - player.body.hh) - relayTop) < .08
-        const standingOnFarBox = !farBox.falling && Math.abs(player.body.x - farBox.body.x) < farBox.body.w / 2 - .05 && Math.abs((player.body.y - player.body.hh) - farTop) < .08
-        if (standingOnRelayBox || standingOnFarBox) player.armBonusJump()
         key.update(dt)
         ambient.update(dt, camera.camera.position.x)
       },
@@ -317,8 +376,10 @@ export class ChapterLoader {
         canyonStage.visible = canyonStageVisible
         canyonLight.intensity = canyonStageVisible ? 2.4 : 0
         relayLight.intensity = skyStageVisible ? 2.2 : .3
+        exitPortal.visible = farBox.falling
       },
       hits() { return false },
+      resetKey() { key.reset() },
       collectKey(target) { return key.collect(target) },
       reachedExit(target) { return farBox.falling && target.body.x > chapter.exitX },
     }
@@ -339,7 +400,8 @@ export class ChapterLoader {
     beacon.position.set(chapter.exitX - .7, 2.8, 1)
     this.group.add(beacon)
     let switched = false
-    const lever = new Lever(this.group, chapter.lever, (on) => { switched = on }, audio)
+    const exitPortal = this.exitPortal
+    const lever = new Lever(this.group, chapter.lever, (on) => { switched = on; exitPortal.visible = on }, audio)
     return {
       colliders: chapter.colliders,
       update(dt) {
@@ -350,8 +412,9 @@ export class ChapterLoader {
       },
       dynamicColliders() { return [lever.collider()].filter(Boolean) },
       save() { return { switched } },
-      restore(snapshot) { switched = snapshot.switched },
+      restore(snapshot) { switched = snapshot.switched; exitPortal.visible = switched },
       hits() { return false },
+      resetKey() { key.reset() },
       collectKey(target) { return key.collect(target) },
       reachedExit(target) { return switched && target.body.x > chapter.exitX },
     }

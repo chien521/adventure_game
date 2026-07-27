@@ -2,11 +2,13 @@ import * as THREE from 'three'
 import { overlaps } from '../core/Physics2D.js'
 
 export class KillVolume {
-  constructor(scene, bounds) {
+  constructor(scene, bounds, { visible = true } = {}) {
     this.bounds = { ...bounds }
-    const mesh = new THREE.Mesh(new THREE.BoxGeometry(bounds.w, bounds.h, .25), new THREE.MeshBasicMaterial({ color: '#b14545', transparent: true, opacity: .35 }))
-    mesh.position.set(bounds.x, bounds.y, -.1)
-    scene.add(mesh)
+    if (visible) {
+      const mesh = new THREE.Mesh(new THREE.BoxGeometry(bounds.w, bounds.h, .25), new THREE.MeshBasicMaterial({ color: '#b14545', transparent: true, opacity: .35 }))
+      mesh.position.set(bounds.x, bounds.y, -.1)
+      scene.add(mesh)
+    }
   }
 
   hits(player) { return overlaps(player.body, this.bounds) }
@@ -55,31 +57,38 @@ export class Searchlight {
 export class Crusher {
   // minY is the lowest point of the stroke (default tuned for ground level); raise it for
   // crushers hanging over elevated platforms so the head doesn't punch through the floor below.
-  constructor(scene, { x, y, w, minY = 1.05 }, color = '#8a5a2e') {
+  constructor(scene, { x, y, w, minY = 1.05, phase = Math.PI / 2 }, color = '#8a5a2e') {
     this.x = x
     this.y = y
     this.w = w
     this.minY = minY
+    this.phase = phase
     this.time = 0
-    this.height = y
-    this.body = { x, y, w, h: 1.1 }
+    this.height = this.positionAt(0)
+    this.body = { x, y: this.height, w, h: 1.1 }
     this.mesh = new THREE.Mesh(new THREE.BoxGeometry(w, 1.1, .9), new THREE.MeshStandardMaterial({ color, roughness: .85 }))
     this.mesh.castShadow = true
     scene.add(this.mesh)
     this.sync()
   }
 
-  update(dt) { this.time += dt; this.height = this.minY + (Math.sin(this.time * 3.2) * .5 + .5) * (this.y - this.minY); this.body.y = this.height; this.sync() }
-  hits(player) { return Math.abs(player.body.x - this.x) < this.w / 2 + player.body.hw && player.body.y + player.body.hh > this.height - .6 && this.height < this.minY + .5 }
-  // Only solidify once retracted enough to be safe. If the player is already standing where the
-  // crusher now occupies (they walked through while it was low and it swung back up under them
-  // mid-stride), stay non-solid a beat longer rather than materializing on top of them and
-  // ejecting them out sideways — wait until they've cleared the footprint on their own.
-  collider(player) {
-    if (this.height < this.minY + .5) return null
-    if (player && Math.abs(player.body.x - this.x) < this.w / 2 + player.body.hw && Math.abs(player.body.y - this.height) < player.body.hh + this.body.h / 2) return null
-    return this.body
+  update(dt, player) {
+    const previousHeight = this.height
+    const previousTop = previousHeight + this.body.h / 2
+    const carriesPlayer = player && Math.abs(player.body.x - this.x) < this.w / 2 + player.body.hw - .01 && Math.abs(player.body.y - player.body.hh - previousTop) < .12
+    this.time += dt
+    this.height = this.positionAt(this.time)
+    this.body.y = this.height
+    if (carriesPlayer) {
+      player.body.y += this.height - previousHeight
+      player.body.vy = 0
+      player.body.grounded = true
+    }
+    this.sync()
   }
+  positionAt(time) { return this.minY + (Math.sin(time * 3.2 + this.phase) * .5 + .5) * (this.y - this.minY) }
+  hits(player) { return Math.abs(player.body.x - this.x) < this.w / 2 + player.body.hw && player.body.y + player.body.hh > this.height - .6 && this.height < this.minY + .5 }
+  collider() { return this.body }
   sync() { this.mesh.position.set(this.x, this.height, 0) }
 }
 

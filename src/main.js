@@ -13,7 +13,7 @@ import { autumn } from './chapters/autumn.js'
 import { winter } from './chapters/winter.js'
 
 const app = document.querySelector('#app')
-app.innerHTML = '<div id="start"><div id="start-content"><button id="start-button" type="button">enter</button><div id="controls" aria-label="Keyboard controls"><p><kbd>A</kbd><kbd>D</kbd> or <kbd>&larr;</kbd><kbd>&rarr;</kbd> move</p><p><kbd>W</kbd> / <kbd>space</kbd> jump</p><p><kbd>E</kbd> / <kbd>shift</kbd> interact and push</p><p><kbd>escape</kbd> pause</p></div></div></div><div id="key-hud" aria-live="polite">keys <span id="key-hud-count">0</span></div><div id="death" aria-hidden="true"></div><div id="pause"><button data-pause="resume" type="button">resume</button><button data-pause="restart" type="button">restart chapter</button><button data-pause="mute" type="button">mute</button></div><div id="ending" aria-live="polite"><h1>UNDERTOW</h1><p id="ending-message">thank you for playing.</p><p id="key-count">0/4 keys</p></div><div id="touch-controls" aria-hidden="true"><div class="touch-half"><button data-input="left" aria-label="Move left">&#x2039;</button><button data-input="right" aria-label="Move right">&#x203a;</button></div><div class="touch-half"><button data-input="jump" aria-label="Jump">A</button><button data-input="grab" aria-label="Grab">B</button></div></div>'
+app.innerHTML = '<div id="start"><div id="start-content"><button id="start-button" type="button">enter</button><div id="chapter-select" aria-label="Select chapter"><button data-chapter="spring" type="button">spring</button><button data-chapter="summer" type="button">summer</button><button data-chapter="autumn" type="button">autumn</button><button data-chapter="winter" type="button">winter</button></div><div id="controls" aria-label="Keyboard controls"><p><kbd>A</kbd><kbd>D</kbd> or <kbd>&larr;</kbd><kbd>&rarr;</kbd> move</p><p><kbd>W</kbd> / <kbd>space</kbd> jump</p><p><kbd>E</kbd> action</p><p><kbd>Q</kbd> enter portal</p><p><kbd>escape</kbd> pause</p></div></div></div><div id="key-hud" aria-live="polite">keys <span id="key-hud-count">0</span></div><div id="death" aria-hidden="true"></div><div id="pause"><button data-pause="resume" type="button">resume</button><button data-pause="restart" type="button">restart chapter</button></div><div id="ending" aria-live="polite"><h1>UNDERTOW</h1><p id="ending-message">thank you for playing.</p><p id="key-count">0/4 keys</p></div><div id="touch-controls" aria-hidden="true"><div class="touch-half"><button data-input="left" aria-label="Move left">&#x2039;</button><button data-input="right" aria-label="Move right">&#x203a;</button></div><div class="touch-half"><button data-input="jump" aria-label="Jump">A</button><button data-input="action" aria-label="Action">B</button></div></div>'
 
 const scene = new THREE.Scene()
 const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'high-performance' })
@@ -31,6 +31,8 @@ const player = new Player(scene, input, audio, spring.spawn)
 const camera = new Camera(player)
 const loader = new ChapterLoader(scene)
 const collectedKeys = new Set()
+const bankedKeys = new Set()
+const chapterStates = new Map()
 let chapterData = spring
 let chapter = loader.load(chapterData, player, input, audio, camera, collectedKeys)
 camera.setZones(chapterData.zones || [])
@@ -41,6 +43,7 @@ let paused = false
 let ending = false
 let endingElapsed = 0
 const fallDeathY = -8
+const autumnFallDeathY = -16
 const endingDuration = 20
 const endingWalkSpeed = 3.2
 const endingFadeStart = endingDuration - 4
@@ -56,11 +59,12 @@ const lamp = new THREE.PointLight(spring.palette.accent, 9, 14, 2)
 lamp.position.set(9, 5, 1)
 scene.add(lamp)
 
-function loadChapter(nextChapter) {
+function loadChapter(nextChapter, entryPosition = nextChapter.spawn, restoreState = false) {
   chapterData = nextChapter
   chapter = loader.load(chapterData, player, input, audio, camera, collectedKeys)
   camera.setZones(chapterData.zones || [])
-  player.reset(chapterData.spawn)
+  if (restoreState && chapterStates.has(nextChapter)) chapter.restore(chapterStates.get(nextChapter))
+  player.reset(entryPosition)
   checkpoint = new Checkpoint(chapterData.checkpoints[0], chapter)
   checkpointIndex = 0
   checkpoint.activate()
@@ -86,11 +90,23 @@ function beginEnding() {
 }
 
 let respawnGrace = 0
+function updateKeyHud() { document.querySelector('#key-hud-count').textContent = collectedKeys.size }
+function bankCurrentKey() {
+  const keyId = chapterData.key?.id
+  if (keyId && collectedKeys.has(keyId)) bankedKeys.add(keyId)
+}
 function dieAtCheckpoint() {
   audio.death()
   camera.shake()
   document.querySelector('#death').classList.add('visible')
-  checkpoint.respawn(player)
+  const keyId = chapterData.key?.id
+  if (keyId && collectedKeys.has(keyId) && !bankedKeys.has(keyId)) {
+    collectedKeys.delete(keyId)
+    chapter.resetKey?.()
+    updateKeyHud()
+  }
+  const canyonRespawn = chapter.recoverCanyonFall?.(player)
+  checkpoint.respawn(player, canyonRespawn || checkpoint.position)
   respawnGrace = .8
   setTimeout(() => document.querySelector('#death').classList.remove('visible'), 650)
 }
@@ -118,7 +134,6 @@ function setPaused(value) { paused = value; document.querySelector('#pause').cla
 addEventListener('keydown', (event) => { if (event.code === 'Escape' && !finished && !ending) { event.preventDefault(); setPaused(!paused) } })
 document.querySelector('[data-pause="resume"]').addEventListener('click', () => setPaused(false))
 document.querySelector('[data-pause="restart"]').addEventListener('click', () => { restartChapter(); setPaused(false) })
-document.querySelector('[data-pause="mute"]').addEventListener('click', (event) => { event.currentTarget.textContent = audio.toggleMute() ? 'unmute' : 'mute' })
 
 const resize = () => { renderer.setSize(innerWidth, innerHeight); camera.resize(innerWidth, innerHeight) }
 addEventListener('resize', resize)
@@ -156,10 +171,11 @@ const game = new Game({
     const keyId = chapter.collectKey(player)
     if (keyId) {
       collectedKeys.add(keyId)
-      document.querySelector('#key-hud-count').textContent = collectedKeys.size
+      updateKeyHud()
     }
     respawnGrace = Math.max(0, respawnGrace - dt)
-    if (player.body.y < fallDeathY) {
+    const activeFallDeathY = chapterData === autumn ? autumnFallDeathY : fallDeathY
+    if (respawnGrace <= 0 && player.body.y < activeFallDeathY) {
       dieAtCheckpoint()
       camera.update(dt)
       return
@@ -170,7 +186,16 @@ const game = new Game({
       checkpoint.activate()
     }
     if (respawnGrace <= 0 && chapter.hits(player)) dieAtCheckpoint()
-    if (chapter.reachedExit(player)) {
+    const previousChapter = chapterData === summer ? spring : chapterData === autumn ? summer : chapterData === winter ? autumn : null
+    if (input.portalPressed && previousChapter && player.body.x < chapterData.returnPortalX) {
+      chapterStates.set(chapterData, chapter.save())
+      loadChapter(previousChapter, { x: previousChapter.exitX - 1.2, y: 2 }, true)
+      camera.update(dt)
+      return
+    }
+    if (input.portalPressed && chapter.reachedExit(player)) {
+      bankCurrentKey()
+      chapterStates.set(chapterData, chapter.save())
       if (chapterData === spring) loadChapter(summer)
       else if (chapterData === summer) loadChapter(autumn)
       else if (chapterData === autumn) loadChapter(winter)
@@ -179,11 +204,18 @@ const game = new Game({
     camera.update(dt)
   },
 })
-document.querySelector('#start-button').addEventListener('click', async () => {
+async function startGame(nextChapter = spring) {
+  if (nextChapter !== chapterData) loadChapter(nextChapter)
   await audio.unlock()
   audio.startAmbience(chapterData.kind || 'outskirts')
   document.querySelector('#start').classList.add('hidden')
   renderer.domElement.focus()
   game.start()
+}
+
+document.querySelector('#start-button').addEventListener('click', () => startGame())
+const chapters = { spring, summer, autumn, winter }
+document.querySelectorAll('[data-chapter]').forEach((button) => {
+  button.addEventListener('click', () => startGame(chapters[button.dataset.chapter]))
 })
 console.info(`UNDERTOW build ${import.meta.env.VITE_BUILD_TAG || 'dev'}`)

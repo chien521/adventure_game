@@ -7,8 +7,9 @@ export class Checkpoint {
 
   activate() { this.snapshot = this.state.save() }
 
-  respawn(player) {
-    player.reset(this.position)
+  respawn(player, position = this.position) {
+    this.snapshot = this.state.save()
+    player.reset(position)
     this.state.restore(this.snapshot)
   }
 }

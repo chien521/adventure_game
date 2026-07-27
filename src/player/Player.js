@@ -16,11 +16,13 @@ export class Player {
     this.jumpBuffer = 0
     this.jumpsRemaining = 1
     this.bonusJumpReady = false
+    this.carriedBox = null
     this.holdTime = 0
     this.footstepTimer = 0
     this.time = 0
     this.pushing = false
     this.landingSquash = 0
+    this.landingCount = 0
     this.dustBursts = []
     this.effectGroup = new THREE.Group()
     this.rig = new PlayerRig()
@@ -106,6 +108,7 @@ export class Player {
       this.audio.land()
       this.spawnDust()
       this.landingSquash = 1
+      this.landingCount += 1
     }
     if (this.body.grounded && Math.abs(this.body.vx) > .5) {
       this.footstepTimer -= dt
@@ -118,6 +121,8 @@ export class Player {
   }
 
   reset(position) {
+    if (this.carriedBox) this.carriedBox.carried = false
+    this.carriedBox = null
     this.body.x = position.x
     this.body.y = position.y
     this.body.vx = 0

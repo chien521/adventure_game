@@ -9,12 +9,15 @@ const createMesh = (size, color) => {
 }
 
 export class Box {
-  constructor(scene, position, bounds = { min: -12.8, max: 12.8 }) {
+  constructor(scene, position, bounds = { min: -12.8, max: 12.8 }, interactions = { carry: true, push: true }) {
     this.start = { ...position }
     this.body = { x: position.x, y: position.y, w: position.w || 1, h: position.h || 1 }
     this.bounds = bounds
+    this.interactions = interactions
     this.falling = false
     this.fallVelocity = 0
+    this.carried = false
+    this.lastPlaced = { x: this.body.x, y: this.body.y }
     this.mesh = createMesh(this.body, '#536b71')
     scene.add(this.mesh)
     this.sync()
@@ -23,8 +26,8 @@ export class Box {
   // True while the player is at box contact, holding grab and pressing horizontally.
   // Also used to suppress nearby lever toggles so one grab press can't push and throw a switch at once.
   playerEngaged(player, input) {
-    if (this.falling) return false
-    if (!input.down('grab')) return false
+    if (!this.interactions.push || this.falling || this.carried) return false
+    if (!input.down('action')) return false
     const direction = input.axis()
     if (!direction) return false
     const horizontalDistance = player.body.x - this.body.x
@@ -34,7 +37,31 @@ export class Box {
   }
 
   update(dt, player, input, blockers) {
-    if (this.falling) return false
+    if (this.falling) {
+      this.fall(dt)
+      return false
+    }
+    if (this.carried) {
+      if (input.actionPressed) {
+        this.carried = false
+        player.carriedBox = null
+        this.body.x = Math.max(this.bounds.min, Math.min(this.bounds.max, player.body.x + player.facing * .9))
+        this.body.y = this.body.h / 2
+        this.lastPlaced = { x: this.body.x, y: this.body.y }
+        input.actionPressed = false
+      } else {
+        this.body.x = player.body.x
+        this.body.y = player.body.y + player.body.hh + this.body.h / 2 + .1
+      }
+      this.sync()
+      return false
+    }
+    if (this.interactions.carry && input.actionPressed && !player.carriedBox && Math.hypot(player.body.x - this.body.x, player.body.y - this.body.y) < 1.35) {
+      this.carried = true
+      player.carriedBox = this
+      input.actionPressed = false
+      return false
+    }
     const direction = input.axis()
     let pushed = false
     if (this.playerEngaged(player, input)) {
@@ -43,6 +70,7 @@ export class Box {
       const blocked = blockers.some((blocker) => Math.abs(candidate.x - blocker.x) < candidate.w / 2 + blocker.w / 2 && Math.abs(candidate.y - blocker.y) < candidate.h / 2 + blocker.h / 2)
       if (!blocked) {
         this.body.x = nextX
+        this.lastPlaced = { x: this.body.x, y: this.body.y }
         const horizontalDistance = player.body.x - this.body.x
         const pulling = (horizontalDistance < 0 && direction < 0) || (horizontalDistance > 0 && direction > 0)
         if (pulling) player.body.x = this.body.x + Math.sign(horizontalDistance) * (this.body.w / 2 + player.body.hw)
@@ -50,6 +78,12 @@ export class Box {
         pushed = true
       }
     }
+    const bottom = this.body.y - this.body.h / 2
+    const supported = blockers.some((blocker) => Math.abs(bottom - (blocker.y + blocker.h / 2)) < .08 && Math.abs(this.body.x - blocker.x) < this.body.w / 2 + blocker.w / 2 - .05)
+    if (!supported) this.startFalling()
+    const top = this.body.y + this.body.h / 2
+    const standingOnBox = !this.falling && Math.abs(player.body.x - this.body.x) < this.body.w / 2 - .05 && Math.abs((player.body.y - player.body.hh) - top) < .08
+    if (standingOnBox) player.armBonusJump()
     this.sync()
     return pushed
   }
@@ -61,25 +95,32 @@ export class Box {
     this.body.y += this.fallVelocity * dt
     this.sync()
   }
-  collider() { return this.falling ? null : this.body }
-  save() { return { x: this.body.x, y: this.body.y, falling: this.falling, fallVelocity: this.fallVelocity } }
+  collider() { return this.falling || this.carried ? null : this.body }
+  save() {
+    const position = this.carried ? this.lastPlaced : this.body
+    return { x: position.x, y: position.y, falling: this.falling, fallVelocity: this.fallVelocity }
+  }
   restore(snapshot) {
     this.body.x = snapshot.x
     this.body.y = snapshot.y
     this.falling = Boolean(snapshot.falling)
     this.fallVelocity = snapshot.fallVelocity || 0
+    this.carried = false
+    this.lastPlaced = { x: this.body.x, y: this.body.y }
     this.sync()
   }
   sync() { this.mesh.position.set(this.body.x, this.body.y, 0) }
 }
 
 export class Lever {
-  constructor(scene, position, onToggle, audio = null) {
+  constructor(scene, position, onToggle, audio = null, { requiresJumpAction = false, pullRange = { x: 1.2, y: 1.2 } } = {}) {
     this.position = position
     this.body = position.solid ? { x: position.x, y: position.y, w: .32, h: 1 } : null
     this.on = false
     this.onToggle = onToggle
     this.audio = audio
+    this.requiresJumpAction = requiresJumpAction
+    this.pullRange = pullRange
     this.mesh = createMesh({ w: .22, h: 1 }, '#86b8bd')
     this.mesh.position.set(position.x, position.y, .1)
     scene.add(this.mesh)
@@ -87,7 +128,9 @@ export class Lever {
 
   update(player, input, busy = false) {
     if (busy) return
-    if (input.grabPressed && Math.hypot(player.body.x - this.position.x, player.body.y - this.position.y) < 1.7) {
+    const canPull = !this.requiresJumpAction || !player.body.grounded
+    const withinPullRange = Math.abs(player.body.x - this.position.x) < this.pullRange.x && Math.abs(player.body.y - this.position.y) < this.pullRange.y
+    if (input.actionPressed && canPull && withinPullRange) {
       this.on = !this.on
       this.mesh.rotation.z = this.on ? -.8 : .8
       this.onToggle(this.on)
@@ -101,7 +144,7 @@ export class Lever {
 
 export class Door {
   constructor(scene, position) {
-    this.body = { x: position.x, y: position.y, w: .7, h: position.h || 2.5 }
+    this.body = { x: position.x, y: position.y, w: .7, h: position.h || 3.4 }
     this.mesh = createMesh(this.body, '#30424a')
     scene.add(this.mesh)
     this.open = false

@@ -4,10 +4,12 @@ export class Input {
     this.touch = new Set()
     this.previousJump = false
     this.jumpPressed = false
-    this.previousGrab = false
-    this.grabPressed = false
+    this.previousAction = false
+    this.actionPressed = false
+    this.previousPortal = false
+    this.portalPressed = false
     this.wDown = false
-    const map = { KeyA: 'left', ArrowLeft: 'left', KeyD: 'right', ArrowRight: 'right', Space: 'jump', KeyW: 'jump', ArrowUp: 'jump', ShiftLeft: 'grab', ShiftRight: 'grab', KeyE: 'grab' }
+    const map = { KeyA: 'left', ArrowLeft: 'left', KeyD: 'right', ArrowRight: 'right', Space: 'jump', KeyW: 'jump', ArrowUp: 'jump', KeyE: 'action', KeyQ: 'portal' }
     window.addEventListener('keydown', (event) => { if (map[event.code]) { this.keys.add(map[event.code]); if (event.code === 'KeyW') this.wDown = true; event.preventDefault(); canvas.focus() } })
     window.addEventListener('keyup', (event) => { if (map[event.code]) { this.keys.delete(map[event.code]); if (event.code === 'KeyW') this.wDown = false } })
     window.addEventListener('blur', () => { this.keys.clear(); this.wDown = false })
@@ -22,13 +24,16 @@ export class Input {
   }
 
   update() {
-    const jumping = this.down('jump') && !(this.down('grab') && this.wDown)
-    const grabbing = this.down('grab')
+    const jumping = this.down('jump')
+    const acting = this.down('action')
+    const enteringPortal = this.down('portal')
     this.jumpPressed = jumping && !this.previousJump
-    this.grabPressed = grabbing && !this.previousGrab
+    this.actionPressed = acting && !this.previousAction
+    this.portalPressed = enteringPortal && !this.previousPortal
     this.previousJump = jumping
-    this.previousGrab = grabbing
+    this.previousAction = acting
+    this.previousPortal = enteringPortal
   }
   down(action) { return this.keys.has(action) || this.touch.has(action) }
-  axis() { return (this.down('right') ? 1 : 0) - (this.down('left') || (this.down('grab') && this.wDown) ? 1 : 0) }
+  axis() { return (this.down('right') ? 1 : 0) - (this.down('left') ? 1 : 0) }
 }

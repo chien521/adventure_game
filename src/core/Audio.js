@@ -16,6 +16,7 @@ export class Audio {
   }
 
   async unlock() {
+    return
     if (!this.context) {
       this.context = new AudioContext()
       this.master = this.context.createGain()
