@@ -9,7 +9,7 @@ const createMesh = (size, color) => {
 }
 
 export class Box {
-  constructor(scene, position, bounds = { min: -12.8, max: 12.8 }, interactions = { carry: true, push: true }) {
+  constructor(scene, position, bounds = { min: -12.8, max: 12.8 }, interactions = { carry: true, push: false }) {
     this.start = { ...position }
     this.body = { x: position.x, y: position.y, w: position.w || 1, h: position.h || 1 }
     this.bounds = bounds
@@ -23,22 +23,11 @@ export class Box {
     this.sync()
   }
 
-  // True while the player is at box contact, holding grab and pressing horizontally.
-  // Also used to suppress nearby lever toggles so one grab press can't push and throw a switch at once.
-  playerEngaged(player, input) {
-    if (!this.interactions.push || this.falling || this.carried) return false
-    if (!input.down('action')) return false
-    const direction = input.axis()
-    if (!direction) return false
-    const horizontalDistance = player.body.x - this.body.x
-    const verticallyAligned = Math.abs(player.body.y - this.body.y) < player.body.hh + this.body.h / 2
-    const atContact = Math.abs(Math.abs(horizontalDistance) - (player.body.hw + this.body.w / 2)) < .18
-    return verticallyAligned && atContact
-  }
+  playerEngaged() { return false }
 
   update(dt, player, input, blockers) {
     if (this.falling) {
-      this.fall(dt)
+      this.fall(dt, blockers)
       return false
     }
     if (this.carried) {
@@ -62,22 +51,6 @@ export class Box {
       input.actionPressed = false
       return false
     }
-    const direction = input.axis()
-    let pushed = false
-    if (this.playerEngaged(player, input)) {
-      const nextX = Math.max(this.bounds.min, Math.min(this.bounds.max, this.body.x + direction * Math.min(2.4 * dt, .04)))
-      const candidate = { ...this.body, x: nextX }
-      const blocked = blockers.some((blocker) => Math.abs(candidate.x - blocker.x) < candidate.w / 2 + blocker.w / 2 && Math.abs(candidate.y - blocker.y) < candidate.h / 2 + blocker.h / 2)
-      if (!blocked) {
-        this.body.x = nextX
-        this.lastPlaced = { x: this.body.x, y: this.body.y }
-        const horizontalDistance = player.body.x - this.body.x
-        const pulling = (horizontalDistance < 0 && direction < 0) || (horizontalDistance > 0 && direction > 0)
-        if (pulling) player.body.x = this.body.x + Math.sign(horizontalDistance) * (this.body.w / 2 + player.body.hw)
-        player.body.vx *= .72
-        pushed = true
-      }
-    }
     const bottom = this.body.y - this.body.h / 2
     const supported = blockers.some((blocker) => Math.abs(bottom - (blocker.y + blocker.h / 2)) < .08 && Math.abs(this.body.x - blocker.x) < this.body.w / 2 + blocker.w / 2 - .05)
     if (!supported) this.startFalling()
@@ -85,14 +58,27 @@ export class Box {
     const standingOnBox = !this.falling && Math.abs(player.body.x - this.body.x) < this.body.w / 2 - .05 && Math.abs((player.body.y - player.body.hh) - top) < .08
     if (standingOnBox) player.armBonusJump()
     this.sync()
-    return pushed
+    return false
   }
 
   startFalling() { this.falling = true; this.fallVelocity = 0 }
-  fall(dt) {
+  fall(dt, blockers = []) {
     if (!this.falling) return
+    const previousBottom = this.body.y - this.body.h / 2
     this.fallVelocity -= 25 * dt
     this.body.y += this.fallVelocity * dt
+    const nextBottom = this.body.y - this.body.h / 2
+    const landing = blockers
+      .filter((blocker) => Math.abs(this.body.x - blocker.x) < this.body.w / 2 + blocker.w / 2 - .05)
+      .map((blocker) => ({ blocker, top: blocker.y + blocker.h / 2 }))
+      .filter(({ top }) => previousBottom >= top - .001 && nextBottom <= top + .001)
+      .sort((first, second) => second.top - first.top)[0]
+    if (landing) {
+      this.body.y = landing.top + this.body.h / 2
+      this.falling = false
+      this.fallVelocity = 0
+      this.lastPlaced = { x: this.body.x, y: this.body.y }
+    }
     this.sync()
   }
   collider() { return this.falling || this.carried ? null : this.body }
@@ -115,7 +101,7 @@ export class Box {
 export class Lever {
   constructor(scene, position, onToggle, audio = null, { requiresJumpAction = false, pullRange = { x: 1.2, y: 1.2 } } = {}) {
     this.position = position
-    this.body = position.solid ? { x: position.x, y: position.y, w: .32, h: 1 } : null
+    this.body = null
     this.on = false
     this.onToggle = onToggle
     this.audio = audio
@@ -159,21 +145,19 @@ export class Door {
 }
 
 export class PressurePlate {
-  constructor(scene, position, onChange, { transparent = false } = {}) {
-    this.body = { x: position.x, y: position.y, w: 1.35, h: .2 }
+  constructor(scene, position, onChange) {
+    this.body = { x: position.x, y: position.y, w: 1.35, h: .12 }
     this.onChange = onChange
     this.pressed = false
-    this.mesh = createMesh(this.body, '#6c7d62')
-    if (transparent) {
-      this.mesh.material.transparent = true
-      this.mesh.material.opacity = .45
-    }
+    this.mesh = createMesh(this.body, '#FF5151')
+    this.mesh.material.transparent = true
+    this.mesh.material.opacity = .55
     scene.add(this.mesh)
     this.mesh.position.set(position.x, position.y, 0)
   }
 
   update(box) {
-    const pressed = Math.abs(box.body.x - this.body.x) < .85 && Math.abs(box.body.y - (this.body.y + .6)) < .8
-    if (pressed !== this.pressed) { this.pressed = pressed; this.mesh.material.color.set(pressed ? '#a2bd6a' : '#6c7d62'); this.onChange(pressed) }
+    const pressed = Math.abs(box.body.x - this.body.x) < .85 && Math.abs(box.body.y - (this.body.y + .56)) < .3
+    if (pressed !== this.pressed) { this.pressed = pressed; this.mesh.material.opacity = pressed ? .9 : .55; this.onChange(pressed) }
   }
 }

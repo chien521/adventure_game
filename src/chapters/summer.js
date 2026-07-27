@@ -39,7 +39,7 @@ export const summer = {
   checkpoints: [{ x: -19, y: 2 }, { x: -5, y: 2 }, { x: 8.6, y: 2 }],
   boxInteractions: { carry: true, push: false },
   box: { x: 4.7, y: .5 },
-  sidePlate: { x: -18, y: .55 },
+  sidePlate: { x: -18, y: .06 },
   sideDoor: { x: 6.8, y: 1.7, h: 3.4 },
   lever: { x: -1.5, y: .55, solid: true },
   door: { x: 3.6, y: 1.7, h: 3.4 },

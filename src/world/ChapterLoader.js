@@ -275,9 +275,9 @@ export class ChapterLoader {
       keyStagesVisible = visible
       keyStageMeshes.forEach((mesh) => { mesh.visible = visible })
     }
-    const returnTrigger = new PressurePlate(this.group, chapter.returnTrigger, (pressed) => { if (pressed) activatePortal() }, { transparent: true })
+    const returnTrigger = new PressurePlate(this.group, chapter.returnTrigger, (pressed) => { if (pressed) activatePortal() })
     returnTrigger.mesh.visible = false
-    const keyTrigger = new PressurePlate(this.group, chapter.keyTrigger, (pressed) => { if (pressed) spawnElevator() }, { transparent: true })
+    const keyTrigger = new PressurePlate(this.group, chapter.keyTrigger, (pressed) => { if (pressed) spawnElevator() })
     keyTrigger.mesh.visible = false
     const elevator = {
       body: { x: chapter.keyElevator.x, y: chapter.keyElevator.startY, w: chapter.keyElevator.w, h: chapter.keyElevator.h },
@@ -317,7 +317,7 @@ export class ChapterLoader {
       colliders: chapter.colliders,
       update(dt) {
         crushers.forEach((crusher) => crusher.update(dt, player))
-        const topBoxPushed = topBox.update(dt, player, input, [...chapter.colliders, topLever.collider(), returnTriggerVisible ? returnTrigger.body : null, keyTriggerVisible ? keyTrigger.body : null, elevatorSpawned ? elevator.body : null].filter(Boolean))
+        const topBoxPushed = topBox.update(dt, player, input, [...chapter.colliders, elevatorSpawned ? elevator.body : null].filter(Boolean))
         topLever.update(player, input, topBox.playerEngaged(player, input))
         keyLever.update(player, input)
         if (returnTriggerVisible) {
@@ -472,6 +472,10 @@ export class ChapterLoader {
         exitPortal.visible = farBox.falling
       },
       hits() { return false },
+      recoverFall(target) {
+        if (target.body.x > chapter.farCliffX) return { x: 4, y: 2 }
+        return null
+      },
       resetKey() { key.reset() },
       collectKey(target) { return key.collect(target) },
       reachedExit(target) { return farBox.falling && target.body.x > chapter.exitX },
@@ -482,34 +486,59 @@ export class ChapterLoader {
     const ambient = buildWinterAmbient(this.group, chapter)
     const key = this.createKey(chapter, collectedKeys)
     const core = new THREE.Group()
-    core.position.set(0, 4.5, -2)
+    core.position.set(6, 4.5, -2)
     for (const radius of [1.4, 2.15, 2.9]) {
       const ring = new THREE.Mesh(new THREE.TorusGeometry(radius, .12, 6, 24), new THREE.MeshStandardMaterial({ color: '#e8f0ee', emissive: '#657578', emissiveIntensity: .3, roughness: .5 }))
       ring.rotation.x = Math.PI / 2
       core.add(ring)
     }
     this.group.add(core)
-    const beacon = new THREE.PointLight(chapter.palette.accent, 4, 6, 2)
+    const beacon = new THREE.PointLight(chapter.palette.accent, 0, 6, 2)
     beacon.position.set(chapter.exitX - .7, 2.8, 1)
     this.group.add(beacon)
-    let switched = false
     const exitPortal = this.exitPortal
-    const lever = new Lever(this.group, chapter.lever, (on) => { switched = on; exitPortal.visible = on }, audio)
+    const coreBox = new Box(this.group, chapter.coreBox, { min: -16.5, max: 9 }, chapter.boxInteractions)
+    const gateDoor = new Door(this.group, chapter.gateDoor)
+    const gatePlate = new PressurePlate(this.group, chapter.gatePlate, (pressed) => { if (pressed) gateDoor.setOpen(true) })
+    const bridgeMaterial = new THREE.MeshStandardMaterial({ color: chapter.palette.structure, emissive: chapter.palette.accent, emissiveIntensity: .38, roughness: .75 })
+    const finalBridge = new THREE.Mesh(new THREE.BoxGeometry(chapter.finalBridge.w, chapter.finalBridge.h, .9), bridgeMaterial)
+    finalBridge.position.set(chapter.finalBridge.x, chapter.finalBridge.y, 0)
+    finalBridge.castShadow = true
+    finalBridge.visible = false
+    this.group.add(finalBridge)
+    let bridgeActive = false
+    const bridgePlate = new PressurePlate(this.group, chapter.bridgePlate, (pressed) => {
+      if (!pressed || bridgeActive) return
+      bridgeActive = true
+      finalBridge.visible = true
+      exitPortal.visible = true
+      beacon.intensity = 5
+    })
     return {
       colliders: chapter.colliders,
       update(dt) {
         core.rotation.z += dt * .25
-        lever.update(player, input)
+        const boxPushed = coreBox.update(dt, player, input, [...chapter.colliders, gateDoor.collider(), bridgeActive ? chapter.finalBridge : null].filter(Boolean))
+        gatePlate.update(coreBox)
+        bridgePlate.update(coreBox)
+        player.setPushing(boxPushed)
         key.update(dt)
         ambient.update(dt, player.body.x)
       },
-      dynamicColliders() { return [lever.collider()].filter(Boolean) },
-      save() { return { switched } },
-      restore(snapshot) { switched = snapshot.switched; exitPortal.visible = switched },
+      dynamicColliders() { return [coreBox.collider(), gateDoor.collider(), bridgeActive ? chapter.finalBridge : null].filter(Boolean) },
+      save() { return { coreBox: coreBox.save(), gateDoor: gateDoor.save(), bridgeActive } },
+      restore(snapshot) {
+        coreBox.restore(snapshot.coreBox)
+        gateDoor.restore(snapshot.gateDoor)
+        bridgeActive = snapshot.bridgeActive || false
+        finalBridge.visible = bridgeActive
+        exitPortal.visible = bridgeActive
+        beacon.intensity = bridgeActive ? 5 : 0
+      },
       hits() { return false },
       resetKey() { key.reset() },
       collectKey(target) { return key.collect(target) },
-      reachedExit(target) { return switched && target.body.x > chapter.exitX },
+      reachedExit(target) { return bridgeActive && target.body.x > chapter.exitX },
     }
   }
 }
