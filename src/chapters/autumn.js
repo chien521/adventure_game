@@ -1,7 +1,7 @@
 export const autumn = {
   kind: 'works',
   palette: { background: '#FFAF60', fog: '#FFAF60', ground: '#65401f', structure: '#503019', accent: '#e5ad54' },
-  spawn: { x: -22.5, y: 2 },
+  spawn: { x: -20.5, y: 2 },
   colliders: [
     { x: -16.1, y: -.5, w: 15.6, h: 1 },
     { x: -24.2, y: 1.5, w: .6, h: 4 },
@@ -11,7 +11,7 @@ export const autumn = {
     { x: 7.75, y: -13.8, w: 7.1, h: .3 },
   ],
   backgrounds: [],
-  checkpoints: [{ x: -22.5, y: 2 }, { x: -14, y: 2 }, { x: -8, y: 2 }, { x: 14, y: 14.2 }, { x: 20.5, y: 14.2 }],
+  checkpoints: [{ x: -20.5, y: 2 }, { x: -14, y: 2 }, { x: -8, y: 2 }, { x: 14, y: 14.2 }, { x: 20.5, y: 14.2 }],
   crushers: [{ x: -5.5, y: 3.4, w: 1.3 }, { x: -3.6, y: 5.75, w: 1.3, minY: 3.4, phase: Math.PI * 1.5 }, { x: -1.7, y: 8.1, w: 1.3, minY: 5.75 }, { x: .2, y: 10.45, w: 1.3, minY: 8.1, phase: Math.PI * 1.5 }, { x: 2.1, y: 12.8, w: 1.3, minY: 10.45 }],
   key: { id: 'autumn', x: 5.2, y: -13.35 },
   keyLever: { x: 7.1, y: -13.25, solid: true },
@@ -21,7 +21,7 @@ export const autumn = {
   returnTrigger: { x: -9.7, y: .06 },
   keyTrigger: { x: 9, y: -13.59 },
   keyElevator: { x: 13.5, startY: -13.45, endY: 12.8, w: 2.4, h: .3 },
-  returnPortalX: -23,
+  returnPortalX: -21.5,
   exitX: 22.85,
   exitY: 14.1,
   returnEntry: { x: 21.65, y: 13.85 },

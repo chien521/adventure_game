@@ -123,6 +123,10 @@ export class Lever {
       this.audio?.leverClunk()
     }
   }
+  setPosition(x, y) {
+    this.position = { x, y }
+    this.mesh.position.set(x, y, .1)
+  }
   save() { return this.on }
   collider() { return this.body }
   restore(value) { this.on = value; this.mesh.rotation.z = value ? -.8 : .8; this.onToggle(value) }

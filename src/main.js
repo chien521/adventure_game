@@ -187,7 +187,7 @@ const game = new Game({
     }
     if (respawnGrace <= 0 && chapter.hits(player)) dieAtCheckpoint()
     const previousChapter = chapterData === summer ? spring : chapterData === autumn ? summer : chapterData === winter ? autumn : null
-    if (input.portalPressed && previousChapter && player.body.x < chapterData.returnPortalX) {
+    if (input.portalPressed && previousChapter && Math.abs(player.body.x - chapterData.returnPortalX) < 1.5) {
       chapterStates.set(chapterData, chapter.save())
       loadChapter(previousChapter, previousChapter.returnEntry || { x: previousChapter.exitX - 1.2, y: 2 }, true)
       camera.update(dt)

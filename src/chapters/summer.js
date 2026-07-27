@@ -6,7 +6,7 @@ export const summer = {
   colliders: [
     { x: -15.25, y: -.5, w: 49.5, h: 1 },
     { x: 21.25, y: -.5, w: 6, h: 1 },
-    { x: -24.3, y: 1.7, w: .6, h: 3.4 },
+    { x: -26.3, y: 1.7, w: .6, h: 3.4 },
     { x: 24.2, y: 1.5, w: .6, h: 4 },
     { x: -16, y: .55, w: 1.4, h: 1.1 },
     { x: -14.6, y: .55, w: 1.4, h: 1.1 },
@@ -46,7 +46,7 @@ export const summer = {
   openDoor: { x: 9.3, y: 1.7, h: 3.4 },
   hiddenTerrain: { x: 5.4, y: .55, w: 1.1, h: 1.1, landingsRequired: 10 },
   portalLever: { x: 5.4, y: .55 },
-  canyonLever: { x: 9.3, y: 3.5 },
+  canyonLever: { x: 9.3, y: .5 },
   canyonBridge: { x: 13.9, y: -.5, w: 8.9, h: 1 },
   canyonHazard: { x: 13.9, y: -4, w: 8.7, h: 7 },
   canyonBoxRecovery: { x: 2.8, y: .5 },

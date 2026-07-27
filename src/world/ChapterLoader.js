@@ -100,6 +100,11 @@ export class ChapterLoader {
     const sidePlate = chapter.sidePlate ? new PressurePlate(this.group, chapter.sidePlate, (pressed) => { if (pressed) sideDoor.setOpen(true) }) : null
     const openDoor = chapter.openDoor ? new Door(this.group, chapter.openDoor) : null
     openDoor?.setOpen(true)
+    let canyonLever = null
+    const syncCanyonLeverToDoor = () => {
+      if (!canyonLever || !openDoor) return
+      canyonLever.setPosition(openDoor.body.x, openDoor.body.y + (openDoor.open ? 3.5 : 0) - openDoor.body.h / 2 + .5)
+    }
     const hiddenTerrain = chapter.hiddenTerrain ? chapter.colliders.find((collider) => collider.x === chapter.hiddenTerrain.x && collider.y === chapter.hiddenTerrain.y && collider.w === chapter.hiddenTerrain.w && collider.h === chapter.hiddenTerrain.h) : null
     const hiddenTerrainMesh = hiddenTerrain ? this.colliderMeshes.get(hiddenTerrain) : null
     let hiddenTerrainLandings = 0
@@ -110,7 +115,7 @@ export class ChapterLoader {
     const exitPortal = this.exitPortal
     if (portalLever) portalLever.mesh.visible = false
     const canyonHazard = chapter.canyonHazard ? new KillVolume(this.group, chapter.canyonHazard, { visible: false }) : null
-    const hillLever = chapter.hillLever ? new Lever(this.group, chapter.hillLever, () => {}, audio) : null
+    const hillLever = chapter.hillLever ? new Lever(this.group, chapter.hillLever, (on) => { openDoor?.setOpen(!on); syncCanyonLeverToDoor() }, audio) : null
     const killVolume = chapter.hazard ? new KillVolume(this.group, chapter.hazard) : null
     const searchlight = chapter.searchlight ? new Searchlight(this.group, chapter.searchlight) : null
     const shadeBox = chapter.shadeBox ? new Box(this.group, chapter.shadeBox, { min: chapter.shadeBox.x - .5, max: chapter.shadePlate.x + .2 }) : null
@@ -139,7 +144,8 @@ export class ChapterLoader {
     const skyBlock = hasSkyRoute ? makeStage(chapter.skyBlock) : null
     const canyonBridge = chapter.canyonBridge ? makeStage(chapter.canyonBridge) : null
     let canyonBridgeVisible = false
-    const canyonLever = chapter.canyonLever ? new Lever(this.group, chapter.canyonLever, (on) => { canyonBridgeVisible = on; canyonBridge.visible = on }, audio, { requiresJumpAction: true, pullRange: { x: 1.7, y: 2.4 } }) : null
+    canyonLever = chapter.canyonLever ? new Lever(this.group, chapter.canyonLever, (on) => { canyonBridgeVisible = on; canyonBridge.visible = on }, audio, { requiresJumpAction: true, pullRange: { x: 1.7, y: 2.4 } }) : null
+    syncCanyonLeverToDoor()
     let farBankBox = null
     let farBankBoxSpawned = false
     const spawnFarBankBox = () => {
@@ -221,7 +227,7 @@ export class ChapterLoader {
       dynamicColliders() { return [box.collider(), postKeyBox?.collider(), farBankBox?.collider(), shadeBox?.collider(), lever.collider(), door.collider(), sideDoor?.collider(), openDoor?.collider(), shadeDoor?.collider(), hillLever?.collider(), portalLever?.collider(), canyonLever?.collider(), farBankLever?.collider(), leftLever?.collider(), canyonBridgeVisible ? chapter.canyonBridge : null, leftStageVisible ? chapter.leftStage : null, leftStageVisible ? middleLever?.collider() : null, middleStageVisible ? chapter.middleStage : null, middleStageVisible ? highLever?.collider() : null, skyBlockVisible ? chapter.skyBlock : null].filter(Boolean) },
       save() { return { box: box.save(), postKeyBox: postKeyBox?.save(), postKeyBoxSpawned, farBankBox: farBankBox?.save(), farBankBoxSpawned, shadeBox: shadeBox?.save(), lever: lever.save(), door: door.save(), sideDoor: sideDoor?.save(), openDoor: openDoor?.save(), shadeDoor: shadeDoor?.save(), hillLever: hillLever?.save(), portalLever: portalLever?.save(), portalEnabled, hiddenTerrainLandings, hiddenTerrainGone, canyonLever: canyonLever?.save(), canyonBridgeVisible, leftStageVisible, middleStageVisible, skyBlockVisible, leftLever: leftLever?.save(), middleLever: middleLever?.save(), highLever: highLever?.save() } },
       restore(snapshot) {
-        box.restore(snapshot.box); if (snapshot.postKeyBoxSpawned) { spawnPostKeyBox(); postKeyBox.restore(snapshot.postKeyBox) }; if (snapshot.farBankBoxSpawned) { spawnFarBankBox(); farBankBox.restore(snapshot.farBankBox) }; shadeBox?.restore(snapshot.shadeBox); lever.restore(snapshot.lever); door.restore(snapshot.door); if (snapshot.sideDoor !== undefined) sideDoor?.restore(snapshot.sideDoor); openDoor?.restore(snapshot.openDoor ?? true); if (snapshot.shadeDoor !== undefined) shadeDoor?.restore(snapshot.shadeDoor); hillLever?.restore(snapshot.hillLever ?? false); hiddenTerrainLandings = snapshot.hiddenTerrainLandings || 0; hiddenTerrainGone = snapshot.hiddenTerrainGone || false; observedLandingCount = player.landingCount; if (hiddenTerrainMesh) hiddenTerrainMesh.visible = !hiddenTerrainGone; if (portalLever) { portalLever.mesh.visible = hiddenTerrainGone; portalLever.restore(snapshot.portalLever ?? false) }; portalEnabled = snapshot.portalEnabled ?? portalEnabled; exitPortal.visible = portalEnabled; canyonBridgeVisible = snapshot.canyonBridgeVisible || false; if (canyonBridge) canyonBridge.visible = canyonBridgeVisible; canyonLever?.restore(snapshot.canyonLever ?? false); farBankLever?.restore(snapshot.farBankBoxSpawned ?? false)
+        box.restore(snapshot.box); if (snapshot.postKeyBoxSpawned) { spawnPostKeyBox(); postKeyBox.restore(snapshot.postKeyBox) }; if (snapshot.farBankBoxSpawned) { spawnFarBankBox(); farBankBox.restore(snapshot.farBankBox) }; shadeBox?.restore(snapshot.shadeBox); lever.restore(snapshot.lever); door.restore(snapshot.door); if (snapshot.sideDoor !== undefined) sideDoor?.restore(snapshot.sideDoor); openDoor?.restore(snapshot.openDoor ?? true); if (snapshot.shadeDoor !== undefined) shadeDoor?.restore(snapshot.shadeDoor); hillLever?.restore(snapshot.hillLever ?? false); syncCanyonLeverToDoor(); hiddenTerrainLandings = snapshot.hiddenTerrainLandings || 0; hiddenTerrainGone = snapshot.hiddenTerrainGone || false; observedLandingCount = player.landingCount; if (hiddenTerrainMesh) hiddenTerrainMesh.visible = !hiddenTerrainGone; if (portalLever) { portalLever.mesh.visible = hiddenTerrainGone; portalLever.restore(snapshot.portalLever ?? false) }; portalEnabled = snapshot.portalEnabled ?? portalEnabled; exitPortal.visible = portalEnabled; canyonBridgeVisible = snapshot.canyonBridgeVisible || false; if (canyonBridge) canyonBridge.visible = canyonBridgeVisible; canyonLever?.restore(snapshot.canyonLever ?? false); farBankLever?.restore(snapshot.farBankBoxSpawned ?? false)
         if (!hasSkyRoute) return
         leftStageVisible = snapshot.leftStageVisible || false
         middleStageVisible = snapshot.middleStageVisible || false
