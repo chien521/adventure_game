@@ -99,11 +99,13 @@ export class ChapterLoader {
     const sideDoor = chapter.sideDoor ? new Door(this.group, chapter.sideDoor) : null
     let portalPlate = null
     let portalPlateVisible = false
+    let sideDoorRevealPending = false
     const sidePlate = chapter.sidePlate ? new PressurePlate(this.group, chapter.sidePlate, (pressed) => {
       if (!pressed) return
       sideDoor.setOpen(true)
       portalPlateVisible = true
       portalPlate?.setVisible(true)
+      sideDoorRevealPending = true
     }) : null
     const openDoor = chapter.openDoor ? new Door(this.group, chapter.openDoor) : null
     openDoor?.setOpen(true)
@@ -233,6 +235,10 @@ export class ChapterLoader {
       },
       hits(target) { return (killVolume?.hits(target) || false) || (canyonHazard?.hits(target) || false) || (searchlight?.hits() || false) || shadeLight?.hits() || false },
       consumePortalReveal() {
+        if (sideDoorRevealPending) {
+          sideDoorRevealPending = false
+          return 'summerSideDoor'
+        }
         const revealed = portalRevealPending
         portalRevealPending = false
         return revealed
@@ -424,6 +430,7 @@ export class ChapterLoader {
     const syncExitLever = () => { if (exitLever) exitLever.mesh.visible = skyStageVisible && leverVisible }
     let portalEnabled = false
     let portalRevealPending = false
+    let leverRevealPending = false
     const exitPortal = this.exitPortal
     let routePlateRearmed = false
     const routePlate = new PressurePlate(this.group, chapter.routePlate, (pressed) => {
@@ -436,6 +443,7 @@ export class ChapterLoader {
       } else {
         leverVisible = true
         syncExitLever()
+        leverRevealPending = true
       }
     })
     const keyBox = new Box(this.group, chapter.keyBox, { min: -22, max: -9 }, chapter.boxInteractions)
@@ -489,13 +497,15 @@ export class ChapterLoader {
     const routeLight = new THREE.PointLight(chapter.palette.accent, 1.8, 3, 2)
     routeLight.position.set(chapter.routeDoor.x, 2.7, 1)
     this.group.add(routeLight)
-    const canyonSideSplitX = (chapter.skyStage.x + chapter.canyonStage.x) / 2
-    let canyonRespawnSide = 'left'
+    let lastCanyonGroundBank = 'left'
 
     return {
       colliders: chapter.colliders,
       update(dt) {
-        if (player.body.grounded) canyonRespawnSide = player.body.x < canyonSideSplitX ? 'left' : 'right'
+        if (player.body.grounded && Math.abs(player.body.y - player.body.hh) < .08) {
+          if (player.body.x <= chapter.skyStage.x + chapter.skyStage.w / 2) lastCanyonGroundBank = 'left'
+          else if (player.body.x >= chapter.farBankLeftX) lastCanyonGroundBank = 'right'
+        }
         const pushed = keyBox.update(dt, player, input, [...chapter.colliders, keyDoor.collider(), routeDoor.collider()].filter(Boolean))
         const farPushed = farBox.update(dt, player, input, chapter.colliders)
         const busy = keyBox.playerEngaged(player, input) || farBox.playerEngaged(player, input)
@@ -511,7 +521,7 @@ export class ChapterLoader {
         ambient.update(dt, camera.camera.position.x)
       },
       dynamicColliders() { return [keyBox.collider(), farBox.collider(), keyDoor.collider(), routeDoor.collider(), routeLever.collider(), skyStageVisible ? chapter.skyStage : null, skyStageVisible && leverVisible ? exitLever.collider() : null, canyonStageVisible ? chapter.canyonStage : null].filter(Boolean) },
-      save() { return { keyBox: keyBox.save(), farBox: farBox.save(), keyDoor: keyDoor.save(), routeDoor: routeDoor.save(), routeLever: routeLever.save(), keyPlateRemaining: keyPlate.remaining, routePlateActivations, routePlateRemaining: routePlate.remaining, routePlateRearmed, relayPlateRemaining: relayPlate.remaining, skyStageVisible, leverVisible, canyonStageVisible, exitLever: exitLever.save(), portalEnabled, canyonRespawnSide } },
+      save() { return { keyBox: keyBox.save(), farBox: farBox.save(), keyDoor: keyDoor.save(), routeDoor: routeDoor.save(), routeLever: routeLever.save(), keyPlateRemaining: keyPlate.remaining, routePlateActivations, routePlateRemaining: routePlate.remaining, routePlateRearmed, relayPlateRemaining: relayPlate.remaining, skyStageVisible, leverVisible, canyonStageVisible, exitLever: exitLever.save(), portalEnabled, lastCanyonGroundBank } },
       restore(snapshot) {
         keyBox.restore(snapshot.keyBox)
         farBox.restore(snapshot.farBox || farBox.save())
@@ -536,17 +546,20 @@ export class ChapterLoader {
         portalEnabled = snapshot.portalEnabled ?? routePlateActivations >= 2
         exitPortal.visible = portalEnabled
         updateRoutePlateAvailability()
-        canyonRespawnSide = snapshot.canyonRespawnSide || 'left'
+        lastCanyonGroundBank = snapshot.lastCanyonGroundBank ?? snapshot.canyonRespawnSide ?? 'left'
       },
       hits() { return false },
       recoverFall(target) {
-        if (target.body.x < chapter.farBankLeftX || target.body.x > chapter.farCliffX) return canyonRespawnSide === 'left' ? { x: 4, y: 2 } : { x: 13.2, y: 2 }
-        return null
+        return lastCanyonGroundBank === 'left' ? { x: 4, y: 2 } : { x: 13.2, y: 2 }
       },
       resetKey() { key.reset() },
       collectKey(target) { return key.collect(target) },
       reachedExit(target) { return portalEnabled && target.body.x > chapter.exitX },
       consumePortalReveal() {
+        if (leverRevealPending) {
+          leverRevealPending = false
+          return 'springLever'
+        }
         const revealed = portalRevealPending
         portalRevealPending = false
         return revealed

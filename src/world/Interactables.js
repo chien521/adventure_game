@@ -48,8 +48,8 @@ export class Box {
       return false
     }
     const top = this.body.y + this.body.h / 2
-    const standingOnBox = Math.abs(player.body.x - this.body.x) < this.body.w / 2 - .05 && Math.abs((player.body.y - player.body.hh) - top) < .08
-    if (standingOnBox) player.armBonusJump()
+    const standingOnBox = Math.abs(player.body.x - this.body.x) < this.body.w / 2 + player.body.hw - .05 && Math.abs((player.body.y - player.body.hh) - top) < .08
+    if (standingOnBox) player.armBonusJump(this)
     this.sync()
     return false
   }

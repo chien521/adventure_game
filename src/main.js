@@ -204,6 +204,8 @@ const game = new Game({
       input.clear()
       if (portalReveal === 'floatingRoute') camera.showRoutePortal(chapterData.exitX + .25, chapterData.exitY)
       else if (portalReveal === 'floatingRouteReverse') camera.showRouteTrigger(chapterData.returnTrigger.x, chapterData.returnTrigger.y)
+      else if (portalReveal === 'springLever') camera.showPortal(chapterData.exitLever.x, chapterData.exitLever.y)
+      else if (portalReveal === 'summerSideDoor') camera.showHorizontal(chapterData.sideDoor.x)
       else camera.showPortal(chapterData.exitX + .25, chapterData.exitY)
       camera.update(dt)
       return

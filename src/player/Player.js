@@ -17,6 +17,8 @@ export class Player {
     this.jumpsRemaining = 1
     this.bonusJumpReady = false
     this.movableBlockJumpSource = false
+    this.jumpLaunchBlock = null
+    this.jumpLaunchClearance = 0
     this.carriedBox = null
     this.holdTime = 0
     this.footstepTimer = 0
@@ -72,10 +74,12 @@ export class Player {
 
   setPushing(value) { this.pushing = value }
 
-  armBonusJump() { this.movableBlockJumpSource = true }
+  armBonusJump(block) { this.movableBlockJumpSource = block }
 
   update(dt, colliders) {
     this.time += dt
+    this.jumpLaunchClearance = Math.max(0, this.jumpLaunchClearance - dt)
+    if (this.jumpLaunchClearance === 0) this.jumpLaunchBlock = null
     const wasGrounded = this.body.grounded
     const previousVy = this.body.vy
     const axis = this.input.axis()
@@ -99,7 +103,11 @@ export class Player {
       this.body.vy = 9.1
       if (canGroundJump) {
         this.jumpsRemaining -= 1
-        this.bonusJumpReady = this.movableBlockJumpSource
+        this.bonusJumpReady = Boolean(this.movableBlockJumpSource)
+        if (this.movableBlockJumpSource) {
+          this.jumpLaunchBlock = this.movableBlockJumpSource
+          this.jumpLaunchClearance = .16
+        }
       }
       else this.bonusJumpReady = false
       this.coyote = 0
@@ -109,7 +117,8 @@ export class Player {
     if (!this.input.down('jump') && this.body.vy > 2.6) this.body.vy -= 27 * dt
     this.body.vy -= 25 * dt
 
-    moveAndCollide(this.body, dt, colliders)
+    const jumpColliders = this.jumpLaunchBlock ? colliders.filter((collider) => collider !== this.jumpLaunchBlock.collider()) : colliders
+    moveAndCollide(this.body, dt, jumpColliders)
     this.movableBlockJumpSource = false
 
     if (this.body.grounded && !wasGrounded && previousVy < -4) {
@@ -140,6 +149,8 @@ export class Player {
     this.jumpsRemaining = 1
     this.bonusJumpReady = false
     this.movableBlockJumpSource = false
+    this.jumpLaunchBlock = null
+    this.jumpLaunchClearance = 0
     this.holdTime = 0
     this.footstepTimer = 0
     this.pushing = false

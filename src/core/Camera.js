@@ -19,6 +19,8 @@ export class Camera {
 
   showPortal(x, y = 1.15) { this.portalPan = { x, y: Math.max(2.6, y + 1.4), phase: 'toPortal', elapsed: 0 } }
 
+  showHorizontal(x) { this.portalPan = { x, y: this.camera.position.y, phase: 'toPortal', elapsed: 0 } }
+
   showRoutePortal(x, y) {
     this.portalPan = {
       start: { x: this.camera.position.x, y: this.camera.position.y },
