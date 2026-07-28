@@ -10,11 +10,14 @@ export class Camera {
     this.zones = []
     this.shakeTime = 0
     this.shakeMagnitude = 0
+    this.portalPan = null
   }
 
   setZones(zones = []) { this.zones = zones }
 
   shake(duration = .2, magnitude = .13) { this.shakeTime = duration; this.shakeMagnitude = magnitude }
+
+  showPortal(x, y = 1.15) { this.portalPan = { x, y: Math.max(2.6, y + 1.4), phase: 'toPortal', elapsed: 0 } }
 
   resize(width, height) { this.camera.aspect = width / height; this.camera.updateProjectionMatrix() }
 
@@ -25,8 +28,25 @@ export class Camera {
     const targetZ = zone?.camZ ?? 15
     const targetFov = zone?.fov ?? DEFAULT_FOV
     const factor = 1 - Math.exp(-dt * 4)
-    this.camera.position.x += (targetX - this.camera.position.x) * factor
-    this.camera.position.y += (targetY - this.camera.position.y) * factor
+    const portalPanFactor = 1 - Math.exp(-dt * 1.3)
+    let panFinished = false
+    if (this.portalPan) {
+      this.portalPan.elapsed += dt
+      if (this.portalPan.phase === 'toPortal') {
+        this.camera.position.x += (this.portalPan.x - this.camera.position.x) * portalPanFactor
+        this.camera.position.y += (this.portalPan.y - this.camera.position.y) * portalPanFactor
+        if (this.portalPan.elapsed >= 2.4) { this.portalPan.phase = 'hold'; this.portalPan.elapsed = 0 }
+      } else if (this.portalPan.phase === 'hold') {
+        if (this.portalPan.elapsed >= 1.4) { this.portalPan.phase = 'toPlayer'; this.portalPan.elapsed = 0 }
+      } else {
+        this.camera.position.x += (targetX - this.camera.position.x) * portalPanFactor
+        this.camera.position.y += (targetY - this.camera.position.y) * portalPanFactor
+        if (this.portalPan.elapsed >= 2.4) { this.portalPan = null; panFinished = true }
+      }
+    } else {
+      this.camera.position.x += (targetX - this.camera.position.x) * factor
+      this.camera.position.y += (targetY - this.camera.position.y) * factor
+    }
     this.camera.position.z += (targetZ - this.camera.position.z) * factor
     if (Math.abs(this.camera.fov - targetFov) > .01) {
       this.camera.fov += (targetFov - this.camera.fov) * factor
@@ -39,5 +59,6 @@ export class Camera {
       this.camera.position.y += (Math.random() - .5) * strength
     }
     this.camera.lookAt(this.camera.position.x, this.camera.position.y - .5, 0)
+    return panFinished
   }
 }

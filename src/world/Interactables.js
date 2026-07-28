@@ -34,7 +34,7 @@ export class Box {
       if (input.actionPressed) {
         this.carried = false
         player.carriedBox = null
-        this.body.x = Math.max(this.bounds.min, Math.min(this.bounds.max, player.body.x + player.facing * .9))
+        this.body.x = player.body.x + player.facing * .9
         this.body.y = player.body.y - player.body.hh + this.body.h / 2
         this.lastPlaced = { x: this.body.x, y: this.body.y }
         input.actionPressed = false
@@ -51,11 +51,8 @@ export class Box {
       input.actionPressed = false
       return false
     }
-    const bottom = this.body.y - this.body.h / 2
-    const supported = blockers.some((blocker) => Math.abs(bottom - (blocker.y + blocker.h / 2)) < .08 && Math.abs(this.body.x - blocker.x) < this.body.w / 2 + blocker.w / 2 - .05)
-    if (!supported) this.startFalling()
     const top = this.body.y + this.body.h / 2
-    const standingOnBox = !this.falling && Math.abs(player.body.x - this.body.x) < this.body.w / 2 - .05 && Math.abs((player.body.y - player.body.hh) - top) < .08
+    const standingOnBox = Math.abs(player.body.x - this.body.x) < this.body.w / 2 - .05 && Math.abs((player.body.y - player.body.hh) - top) < .08
     if (standingOnBox) player.armBonusJump()
     this.sync()
     return false
@@ -81,7 +78,7 @@ export class Box {
     }
     this.sync()
   }
-  collider() { return this.falling || this.carried ? null : this.body }
+  collider() { return this.carried ? null : this.body }
   save() {
     const position = this.carried ? this.lastPlaced : this.body
     return { x: position.x, y: position.y, falling: this.falling, fallVelocity: this.fallVelocity }
@@ -149,19 +146,70 @@ export class Door {
 }
 
 export class PressurePlate {
-  constructor(scene, position, onChange) {
+  constructor(scene, position, onChange, uses = 1) {
     this.body = { x: position.x, y: position.y, w: 1.35, h: .12 }
     this.onChange = onChange
+    this.remaining = uses
+    this.enabled = true
+    this.visible = true
     this.pressed = false
     this.mesh = createMesh(this.body, '#FF5151')
     this.mesh.material.transparent = true
     this.mesh.material.opacity = .55
+    this.counterCanvas = document.createElement('canvas')
+    this.counterCanvas.width = 96
+    this.counterCanvas.height = 96
+    this.counterTexture = new THREE.CanvasTexture(this.counterCanvas)
+    this.counter = new THREE.Sprite(new THREE.SpriteMaterial({ map: this.counterTexture, transparent: true, depthTest: false }))
+    this.counter.position.set(position.x, position.y - .18, .7)
+    this.counter.scale.set(.42, .42, 1)
     scene.add(this.mesh)
+    scene.add(this.counter)
     this.mesh.position.set(position.x, position.y, 0)
+    this.drawCounter()
+  }
+
+  drawCounter() {
+    const context = this.counterCanvas.getContext('2d')
+    context.clearRect(0, 0, this.counterCanvas.width, this.counterCanvas.height)
+    context.fillStyle = '#101820'
+    context.beginPath()
+    context.arc(48, 48, 34, 0, Math.PI * 2)
+    context.fill()
+    context.strokeStyle = '#FF5151'
+    context.lineWidth = 6
+    context.stroke()
+    context.fillStyle = '#FFFFFF'
+    context.font = 'bold 52px monospace'
+    context.textAlign = 'center'
+    context.textBaseline = 'middle'
+    context.fillText(String(this.remaining), 48, 52)
+    this.counterTexture.needsUpdate = true
+  }
+
+  setVisible(visible) {
+    this.visible = visible
+    this.mesh.visible = visible
+    this.counter.visible = visible
+  }
+
+  setRemaining(remaining) {
+    this.remaining = remaining
+    this.enabled = remaining > 0
+    this.pressed = false
+    this.drawCounter()
   }
 
   update(box) {
+    if (!this.visible || !this.enabled) return
     const pressed = Math.abs(box.body.x - this.body.x) < .85 && Math.abs(box.body.y - (this.body.y + .56)) < .3
-    if (pressed !== this.pressed) { this.pressed = pressed; this.mesh.material.opacity = pressed ? .9 : .55; this.onChange(pressed) }
+    if (pressed === this.pressed) return
+    this.pressed = pressed
+    this.mesh.material.opacity = pressed ? .9 : .55
+    if (!pressed) { this.onChange(false, this.remaining); return }
+    this.remaining -= 1
+    this.enabled = this.remaining > 0
+    this.drawCounter()
+    this.onChange(true, this.remaining)
   }
 }

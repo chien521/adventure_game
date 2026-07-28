@@ -16,6 +16,7 @@ export class Player {
     this.jumpBuffer = 0
     this.jumpsRemaining = 1
     this.bonusJumpReady = false
+    this.movableBlockJumpSource = false
     this.carriedBox = null
     this.holdTime = 0
     this.footstepTimer = 0
@@ -71,7 +72,7 @@ export class Player {
 
   setPushing(value) { this.pushing = value }
 
-  armBonusJump() { this.bonusJumpReady = true }
+  armBonusJump() { this.movableBlockJumpSource = true }
 
   update(dt, colliders) {
     this.time += dt
@@ -87,13 +88,19 @@ export class Player {
     this.body.vx += Math.max(-acceleration * dt, Math.min(acceleration * dt, targetSpeed - this.body.vx))
     if (!axis && this.body.grounded) this.body.vx *= Math.max(0, 1 - 14 * dt)
 
-    if (this.body.grounded) this.jumpsRemaining = 1
+    if (this.body.grounded) {
+      this.jumpsRemaining = 1
+      this.bonusJumpReady = false
+    }
     this.coyote = this.body.grounded ? .1 : Math.max(0, this.coyote - dt)
     this.jumpBuffer = this.input.jumpPressed ? .1 : Math.max(0, this.jumpBuffer - dt)
     const canGroundJump = (this.body.grounded || this.coyote > 0) && this.jumpsRemaining > 0
     if (this.jumpBuffer && (canGroundJump || this.bonusJumpReady)) {
       this.body.vy = 9.1
-      if (canGroundJump) this.jumpsRemaining -= 1
+      if (canGroundJump) {
+        this.jumpsRemaining -= 1
+        this.bonusJumpReady = this.movableBlockJumpSource
+      }
       else this.bonusJumpReady = false
       this.coyote = 0
       this.jumpBuffer = 0
@@ -103,6 +110,7 @@ export class Player {
     this.body.vy -= 25 * dt
 
     moveAndCollide(this.body, dt, colliders)
+    this.movableBlockJumpSource = false
 
     if (this.body.grounded && !wasGrounded && previousVy < -4) {
       this.audio.land()
@@ -131,6 +139,7 @@ export class Player {
     this.jumpBuffer = 0
     this.jumpsRemaining = 1
     this.bonusJumpReady = false
+    this.movableBlockJumpSource = false
     this.holdTime = 0
     this.footstepTimer = 0
     this.pushing = false

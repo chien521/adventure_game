@@ -97,7 +97,14 @@ export class ChapterLoader {
     const box = new Box(this.group, chapter.box, { min: chapter.sideDoor ? -27 : -22, max: 23 }, chapter.boxInteractions)
     const plate = chapter.plate ? new PressurePlate(this.group, chapter.plate, (pressed) => { if (pressed) door.setOpen(true) }) : null
     const sideDoor = chapter.sideDoor ? new Door(this.group, chapter.sideDoor) : null
-    const sidePlate = chapter.sidePlate ? new PressurePlate(this.group, chapter.sidePlate, (pressed) => { if (pressed) sideDoor.setOpen(true) }) : null
+    let portalPlate = null
+    let portalPlateVisible = false
+    const sidePlate = chapter.sidePlate ? new PressurePlate(this.group, chapter.sidePlate, (pressed) => {
+      if (!pressed) return
+      sideDoor.setOpen(true)
+      portalPlateVisible = true
+      portalPlate?.setVisible(true)
+    }) : null
     const openDoor = chapter.openDoor ? new Door(this.group, chapter.openDoor) : null
     openDoor?.setOpen(true)
     let canyonLever = null
@@ -105,15 +112,16 @@ export class ChapterLoader {
       if (!canyonLever || !openDoor) return
       canyonLever.setPosition(openDoor.body.x, openDoor.body.y + (openDoor.open ? 3.5 : 0) - openDoor.body.h / 2 - .25)
     }
-    const hiddenTerrain = chapter.hiddenTerrain ? chapter.colliders.find((collider) => collider.x === chapter.hiddenTerrain.x && collider.y === chapter.hiddenTerrain.y && collider.w === chapter.hiddenTerrain.w && collider.h === chapter.hiddenTerrain.h) : null
-    const hiddenTerrainMesh = hiddenTerrain ? this.colliderMeshes.get(hiddenTerrain) : null
-    let hiddenTerrainLandings = 0
-    let hiddenTerrainGone = false
-    let observedLandingCount = player.landingCount
-    let portalEnabled = !chapter.portalLever
-    const portalLever = chapter.portalLever ? new Lever(this.group, chapter.portalLever, (on) => { portalEnabled = on; this.exitPortal.visible = on }, audio) : null
+    let portalEnabled = !chapter.portalPlate
+    let portalRevealPending = false
     const exitPortal = this.exitPortal
-    if (portalLever) portalLever.mesh.visible = false
+    portalPlate = chapter.portalPlate ? new PressurePlate(this.group, chapter.portalPlate, (pressed) => {
+      if (!pressed) return
+      portalEnabled = true
+      exitPortal.visible = true
+      portalRevealPending = true
+    }) : null
+    portalPlate?.setVisible(false)
     const canyonHazard = chapter.canyonHazard ? new KillVolume(this.group, chapter.canyonHazard, { visible: false }) : null
     const hillLever = chapter.hillLever ? new Lever(this.group, chapter.hillLever, (on) => { openDoor?.setOpen(!on); syncCanyonLeverToDoor() }, audio) : null
     const killVolume = chapter.hazard ? new KillVolume(this.group, chapter.hazard) : null
@@ -174,25 +182,11 @@ export class ChapterLoader {
       highLever.mesh.visible = false
     }
     return {
-      get colliders() { return hiddenTerrainGone ? chapter.colliders.filter((collider) => collider !== hiddenTerrain) : chapter.colliders },
+      get colliders() { return chapter.colliders },
       update(dt) {
-        if (hiddenTerrain && !hiddenTerrainGone && player.landingCount !== observedLandingCount) {
-          observedLandingCount = player.landingCount
-          const terrainTop = hiddenTerrain.y + hiddenTerrain.h / 2
-          const landedOnHiddenTerrain = Math.abs(player.body.x - hiddenTerrain.x) < hiddenTerrain.w / 2 - .05 && Math.abs((player.body.y - player.body.hh) - terrainTop) < .08
-          if (landedOnHiddenTerrain) {
-            hiddenTerrainLandings += 1
-            if (hiddenTerrainLandings >= chapter.hiddenTerrain.landingsRequired) {
-              hiddenTerrainGone = true
-              hiddenTerrainMesh.visible = false
-              portalLever.mesh.visible = true
-            }
-          }
-        }
         const engaged = box.playerEngaged(player, input) || shadeBox?.playerEngaged(player, input) || false
         lever.update(player, input, engaged)
         hillLever?.update(player, input, engaged)
-        portalLever?.update(player, input, engaged)
         canyonLever?.update(player, input, engaged)
         farBankLever?.update(player, input, engaged)
         if (hasSkyRoute) {
@@ -217,6 +211,7 @@ export class ChapterLoader {
         pushed || postKeyPushed || farBankPushed || shadePushed ? audio.startScrape() : audio.stopScrape()
         plate?.update(box)
         sidePlate?.update(box)
+        if (portalPlateVisible) portalPlate?.update(box)
         shadePlate?.update(shadeBox)
         const blockers = [box.collider(), shadeBox?.collider()].filter(Boolean)
         searchlight?.update(dt, player, blockers)
@@ -224,10 +219,10 @@ export class ChapterLoader {
         key.update(dt)
         ambient.update(dt, camera.camera.position.x)
       },
-      dynamicColliders() { return [box.collider(), postKeyBox?.collider(), farBankBox?.collider(), shadeBox?.collider(), lever.collider(), door.collider(), sideDoor?.collider(), openDoor?.collider(), shadeDoor?.collider(), hillLever?.collider(), portalLever?.collider(), canyonLever?.collider(), farBankLever?.collider(), leftLever?.collider(), canyonBridgeVisible ? chapter.canyonBridge : null, leftStageVisible ? chapter.leftStage : null, leftStageVisible ? middleLever?.collider() : null, middleStageVisible ? chapter.middleStage : null, middleStageVisible ? highLever?.collider() : null, skyBlockVisible ? chapter.skyBlock : null].filter(Boolean) },
-      save() { return { box: box.save(), postKeyBox: postKeyBox?.save(), postKeyBoxSpawned, farBankBox: farBankBox?.save(), farBankBoxSpawned, shadeBox: shadeBox?.save(), lever: lever.save(), door: door.save(), sideDoor: sideDoor?.save(), openDoor: openDoor?.save(), shadeDoor: shadeDoor?.save(), hillLever: hillLever?.save(), portalLever: portalLever?.save(), portalEnabled, hiddenTerrainLandings, hiddenTerrainGone, canyonLever: canyonLever?.save(), canyonBridgeVisible, leftStageVisible, middleStageVisible, skyBlockVisible, leftLever: leftLever?.save(), middleLever: middleLever?.save(), highLever: highLever?.save() } },
+      dynamicColliders() { return [box.collider(), postKeyBox?.collider(), farBankBox?.collider(), shadeBox?.collider(), lever.collider(), door.collider(), sideDoor?.collider(), openDoor?.collider(), shadeDoor?.collider(), hillLever?.collider(), canyonLever?.collider(), farBankLever?.collider(), leftLever?.collider(), canyonBridgeVisible ? chapter.canyonBridge : null, leftStageVisible ? chapter.leftStage : null, leftStageVisible ? middleLever?.collider() : null, middleStageVisible ? chapter.middleStage : null, middleStageVisible ? highLever?.collider() : null, skyBlockVisible ? chapter.skyBlock : null].filter(Boolean) },
+      save() { return { box: box.save(), postKeyBox: postKeyBox?.save(), postKeyBoxSpawned, farBankBox: farBankBox?.save(), farBankBoxSpawned, shadeBox: shadeBox?.save(), lever: lever.save(), door: door.save(), sideDoor: sideDoor?.save(), sidePlateRemaining: sidePlate?.remaining, openDoor: openDoor?.save(), shadeDoor: shadeDoor?.save(), hillLever: hillLever?.save(), portalPlateVisible, portalPlateRemaining: portalPlate?.remaining, portalEnabled, canyonLever: canyonLever?.save(), canyonBridgeVisible, leftStageVisible, middleStageVisible, skyBlockVisible, leftLever: leftLever?.save(), middleLever: middleLever?.save(), highLever: highLever?.save() } },
       restore(snapshot) {
-        box.restore(snapshot.box); if (snapshot.postKeyBoxSpawned) { spawnPostKeyBox(); postKeyBox.restore(snapshot.postKeyBox) }; if (snapshot.farBankBoxSpawned) { spawnFarBankBox(); farBankBox.restore(snapshot.farBankBox) }; shadeBox?.restore(snapshot.shadeBox); lever.restore(snapshot.lever); door.restore(snapshot.door); if (snapshot.sideDoor !== undefined) sideDoor?.restore(snapshot.sideDoor); openDoor?.restore(snapshot.openDoor ?? true); if (snapshot.shadeDoor !== undefined) shadeDoor?.restore(snapshot.shadeDoor); hillLever?.restore(snapshot.hillLever ?? false); syncCanyonLeverToDoor(); hiddenTerrainLandings = snapshot.hiddenTerrainLandings || 0; hiddenTerrainGone = snapshot.hiddenTerrainGone || false; observedLandingCount = player.landingCount; if (hiddenTerrainMesh) hiddenTerrainMesh.visible = !hiddenTerrainGone; if (portalLever) { portalLever.mesh.visible = hiddenTerrainGone; portalLever.restore(snapshot.portalLever ?? false) }; portalEnabled = snapshot.portalEnabled ?? portalEnabled; exitPortal.visible = portalEnabled; canyonBridgeVisible = snapshot.canyonBridgeVisible || false; if (canyonBridge) canyonBridge.visible = canyonBridgeVisible; canyonLever?.restore(snapshot.canyonLever ?? false); farBankLever?.restore(snapshot.farBankBoxSpawned ?? false)
+        box.restore(snapshot.box); if (snapshot.postKeyBoxSpawned) { spawnPostKeyBox(); postKeyBox.restore(snapshot.postKeyBox) }; if (snapshot.farBankBoxSpawned) { spawnFarBankBox(); farBankBox.restore(snapshot.farBankBox) }; shadeBox?.restore(snapshot.shadeBox); lever.restore(snapshot.lever); door.restore(snapshot.door); if (snapshot.sideDoor !== undefined) sideDoor?.restore(snapshot.sideDoor); sidePlate?.setRemaining(snapshot.sidePlateRemaining ?? (snapshot.sideDoor ? 0 : 1)); openDoor?.restore(snapshot.openDoor ?? true); if (snapshot.shadeDoor !== undefined) shadeDoor?.restore(snapshot.shadeDoor); hillLever?.restore(snapshot.hillLever ?? false); syncCanyonLeverToDoor(); portalPlateVisible = snapshot.portalPlateVisible ?? !sidePlate?.remaining; portalPlate?.setVisible(portalPlateVisible); portalPlate?.setRemaining(snapshot.portalPlateRemaining ?? (snapshot.portalEnabled ? 0 : 1)); portalEnabled = snapshot.portalEnabled ?? portalEnabled; exitPortal.visible = portalEnabled; canyonBridgeVisible = snapshot.canyonBridgeVisible || false; if (canyonBridge) canyonBridge.visible = canyonBridgeVisible; canyonLever?.restore(snapshot.canyonLever ?? false); farBankLever?.restore(snapshot.farBankBoxSpawned ?? false)
         if (!hasSkyRoute) return
         leftStageVisible = snapshot.leftStageVisible || false
         middleStageVisible = snapshot.middleStageVisible || false
@@ -237,6 +232,11 @@ export class ChapterLoader {
         leftLever.restore(snapshot.leftLever || false); middleLever.restore(snapshot.middleLever || false); highLever.restore(snapshot.highLever || false)
       },
       hits(target) { return (killVolume?.hits(target) || false) || (canyonHazard?.hits(target) || false) || (searchlight?.hits() || false) || shadeLight?.hits() || false },
+      consumePortalReveal() {
+        const revealed = portalRevealPending
+        portalRevealPending = false
+        return revealed
+      },
       recoverCanyonFall(target) {
         if (!chapter.canyonRightRespawn || Math.abs(target.body.x - chapter.canyonHazard.x) > chapter.canyonHazard.w / 2) return null
         const fromRightBank = target.body.x >= chapter.canyonHazard.x
@@ -379,16 +379,27 @@ export class ChapterLoader {
     const keyDoor = new Door(this.group, chapter.keyDoor)
     const keyPlate = new PressurePlate(this.group, chapter.keyPlate, (pressed) => { if (pressed) keyDoor.setOpen(true) })
     const routeDoor = new Door(this.group, chapter.routeDoor)
+    const routeLever = new Lever(this.group, chapter.routeLever, (open) => routeDoor.setOpen(open), audio)
     let routePlateActivations = 0
     let skyStageVisible = false
     let leverVisible = false
     let exitLever = null
     const syncExitLever = () => { if (exitLever) exitLever.mesh.visible = skyStageVisible && leverVisible }
+    let portalEnabled = false
+    let portalRevealPending = false
+    const exitPortal = this.exitPortal
+    let routePlateRearmed = false
     const routePlate = new PressurePlate(this.group, chapter.routePlate, (pressed) => {
       if (!pressed) return
       routePlateActivations += 1
-      if (routePlateActivations === 1) routeDoor.setOpen(true)
-      else { leverVisible = true; syncExitLever() }
+      if (routePlateActivations === 1) {
+        portalEnabled = true
+        portalRevealPending = true
+        exitPortal.visible = true
+      } else {
+        leverVisible = true
+        syncExitLever()
+      }
     })
     const keyBox = new Box(this.group, chapter.keyBox, { min: -22, max: -9 }, chapter.boxInteractions)
     const skyStageMaterial = new THREE.MeshStandardMaterial({ color: chapter.palette.structure, emissive: chapter.palette.accent, emissiveIntensity: .28, roughness: .8 })
@@ -422,9 +433,12 @@ export class ChapterLoader {
         syncExitLever()
       }
     })
-    const relayBox = new Box(this.group, chapter.relayBox, { min: -4, max: chapter.canyonStage.x }, chapter.boxInteractions)
+    const updateRoutePlateAvailability = () => {
+      if (routePlateActivations !== 1 || routePlateRearmed || keyPlate.remaining || relayPlate.remaining) return
+      routePlateRearmed = true
+      routePlate.setRemaining(1)
+    }
     const farBox = new Box(this.group, chapter.farBox, { min: chapter.farBankLeftX - .55, max: chapter.farCliffX + .55 }, chapter.boxInteractions)
-    const exitPortal = this.exitPortal
     const beacon = new THREE.PointLight(chapter.palette.accent, 4, 6, 2)
     beacon.position.set(chapter.exitX - .7, 2.8, 1)
     this.group.add(beacon)
@@ -438,33 +452,40 @@ export class ChapterLoader {
     const routeLight = new THREE.PointLight(chapter.palette.accent, 1.8, 3, 2)
     routeLight.position.set(chapter.routeDoor.x, 2.7, 1)
     this.group.add(routeLight)
+    const canyonSideSplitX = (chapter.skyStage.x + chapter.canyonStage.x) / 2
+    let canyonRespawnSide = 'left'
 
     return {
       colliders: chapter.colliders,
       update(dt) {
+        if (player.body.grounded) canyonRespawnSide = player.body.x < canyonSideSplitX ? 'left' : 'right'
         const pushed = keyBox.update(dt, player, input, [...chapter.colliders, keyDoor.collider(), routeDoor.collider()].filter(Boolean))
-        const relayPushed = relayBox.update(dt, player, input, chapter.colliders)
         const farPushed = farBox.update(dt, player, input, chapter.colliders)
-        exitPortal.visible = farBox.falling
-        const busy = keyBox.playerEngaged(player, input) || relayBox.playerEngaged(player, input) || farBox.playerEngaged(player, input)
+        const busy = keyBox.playerEngaged(player, input) || farBox.playerEngaged(player, input)
+        routeLever.update(player, input, busy)
         if (skyStageVisible && leverVisible) exitLever.update(player, input, busy)
-        player.setPushing(pushed || relayPushed || farPushed)
-        pushed || relayPushed || farPushed ? audio.startScrape() : audio.stopScrape()
+        player.setPushing(pushed || farPushed)
+        pushed || farPushed ? audio.startScrape() : audio.stopScrape()
         keyPlate.update(keyBox)
         routePlate.update(keyBox)
-        relayPlate.update(relayBox)
+        relayPlate.update(keyBox)
+        updateRoutePlateAvailability()
         key.update(dt)
         ambient.update(dt, camera.camera.position.x)
       },
-      dynamicColliders() { return [keyBox.collider(), relayBox.collider(), farBox.collider(), keyDoor.collider(), routeDoor.collider(), skyStageVisible ? chapter.skyStage : null, skyStageVisible && leverVisible ? exitLever.collider() : null, canyonStageVisible ? chapter.canyonStage : null].filter(Boolean) },
-      save() { return { keyBox: keyBox.save(), relayBox: relayBox.save(), farBox: farBox.save(), keyDoor: keyDoor.save(), routeDoor: routeDoor.save(), routePlateActivations, skyStageVisible, leverVisible, canyonStageVisible, exitLever: exitLever.save() } },
+      dynamicColliders() { return [keyBox.collider(), farBox.collider(), keyDoor.collider(), routeDoor.collider(), routeLever.collider(), skyStageVisible ? chapter.skyStage : null, skyStageVisible && leverVisible ? exitLever.collider() : null, canyonStageVisible ? chapter.canyonStage : null].filter(Boolean) },
+      save() { return { keyBox: keyBox.save(), farBox: farBox.save(), keyDoor: keyDoor.save(), routeDoor: routeDoor.save(), routeLever: routeLever.save(), keyPlateRemaining: keyPlate.remaining, routePlateActivations, routePlateRemaining: routePlate.remaining, routePlateRearmed, relayPlateRemaining: relayPlate.remaining, skyStageVisible, leverVisible, canyonStageVisible, exitLever: exitLever.save(), portalEnabled, canyonRespawnSide } },
       restore(snapshot) {
         keyBox.restore(snapshot.keyBox)
-        relayBox.restore(snapshot.relayBox)
-        farBox.restore(snapshot.farBox)
+        farBox.restore(snapshot.farBox || farBox.save())
         keyDoor.restore(snapshot.keyDoor)
         routeDoor.restore(snapshot.routeDoor)
-        routePlateActivations = snapshot.routePlateActivations ?? (snapshot.routeDoor ? 1 : 0)
+        routeLever.restore(snapshot.routeLever ?? snapshot.routeDoor ?? false)
+        routePlateActivations = snapshot.routePlateActivations ?? (snapshot.portalEnabled ? 1 : 0)
+        keyPlate.setRemaining(snapshot.keyPlateRemaining ?? (snapshot.keyDoor ? 0 : 1))
+        routePlate.setRemaining(snapshot.routePlateRemaining ?? (snapshot.portalEnabled ? 0 : 1))
+        routePlateRearmed = snapshot.routePlateRearmed ?? routePlateActivations >= 2
+        relayPlate.setRemaining(snapshot.relayPlateRemaining ?? (snapshot.skyStageVisible ? 0 : 1))
         skyStageVisible = snapshot.skyStageVisible
         leverVisible = snapshot.leverVisible ?? skyStageVisible
         skyStage.visible = skyStageVisible
@@ -475,16 +496,24 @@ export class ChapterLoader {
         canyonStage.visible = canyonStageVisible
         canyonLight.intensity = canyonStageVisible ? 2.4 : 0
         relayLight.intensity = skyStageVisible ? 2.2 : .3
-        exitPortal.visible = farBox.falling
+        portalEnabled = snapshot.portalEnabled ?? routePlateActivations >= 2
+        exitPortal.visible = portalEnabled
+        updateRoutePlateAvailability()
+        canyonRespawnSide = snapshot.canyonRespawnSide || 'left'
       },
       hits() { return false },
       recoverFall(target) {
-        if (target.body.x > chapter.farCliffX) return { x: 4, y: 2 }
+        if (target.body.x < chapter.farBankLeftX || target.body.x > chapter.farCliffX) return canyonRespawnSide === 'left' ? { x: 4, y: 2 } : { x: 13.2, y: 2 }
         return null
       },
       resetKey() { key.reset() },
       collectKey(target) { return key.collect(target) },
-      reachedExit(target) { return farBox.falling && target.body.x > chapter.exitX },
+      reachedExit(target) { return portalEnabled && target.body.x > chapter.exitX },
+      consumePortalReveal() {
+        const revealed = portalRevealPending
+        portalRevealPending = false
+        return revealed
+      },
     }
   }
 

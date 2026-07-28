@@ -34,6 +34,17 @@ export class Input {
     this.previousAction = acting
     this.previousPortal = enteringPortal
   }
+  clear() {
+    this.keys.clear()
+    this.touch.clear()
+    this.previousJump = false
+    this.jumpPressed = false
+    this.previousAction = false
+    this.actionPressed = false
+    this.previousPortal = false
+    this.portalPressed = false
+    this.wDown = false
+  }
   down(action) { return this.keys.has(action) || this.touch.has(action) }
   axis() { return (this.down('right') ? 1 : 0) - (this.down('left') ? 1 : 0) }
 }

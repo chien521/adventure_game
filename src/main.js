@@ -49,6 +49,7 @@ let checkpoint = new Checkpoint(chapterData.checkpoints[0], chapter)
 let checkpointIndex = 0
 let finished = false
 let paused = false
+let portalPanActive = false
 let ending = false
 let endingElapsed = 0
 const fallDeathY = -8
@@ -189,7 +190,19 @@ const game = new Game({
       if (endingElapsed >= endingDuration) finish()
       return
     }
+    if (portalPanActive) {
+      input.clear()
+      if (camera.update(dt)) portalPanActive = false
+      return
+    }
     chapter.update(dt)
+    if (chapter.consumePortalReveal?.()) {
+      portalPanActive = true
+      input.clear()
+      camera.showPortal(chapterData.exitX + .25, chapterData.exitY)
+      camera.update(dt)
+      return
+    }
     player.update(dt, [...chapter.colliders, ...chapter.dynamicColliders()])
     const keyId = chapter.collectKey(player)
     if (keyId) {
