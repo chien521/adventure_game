@@ -260,9 +260,15 @@ export class ChapterLoader {
 
     // Climb the flying blocks, then choose the upper exit route or drop to the lower key route.
     const crushers = chapter.crushers.map((crusher) => new Crusher(this.group, crusher, '#8a5a2e'))
+    let floatingRouteOrigin = null
+    let routeBeforeFloatingBlocks = 'left'
     const exitPortal = this.exitPortal
     const topBox = new Box(this.group, chapter.topBox, { min: -23, max: 23 })
     let returnTriggerVisible = false
+    let returnTriggerActivated = false
+    let returnTriggerRouteReached = false
+    let portalRevealPending = false
+    let triggerRevealPending = false
     let keyTriggerVisible = false
     let keyLeverPulls = 0
     let portalEnabled = false
@@ -282,9 +288,9 @@ export class ChapterLoader {
       keyStageMeshes.forEach((mesh) => { mesh.visible = visible })
     }
     const returnTrigger = new PressurePlate(this.group, chapter.returnTrigger, (pressed) => { if (pressed) activatePortal() })
-    returnTrigger.mesh.visible = false
+    returnTrigger.setVisible(false)
     const keyTrigger = new PressurePlate(this.group, chapter.keyTrigger, (pressed) => { if (pressed) spawnElevator() })
-    keyTrigger.mesh.visible = false
+    keyTrigger.setVisible(false)
     const elevator = {
       body: { x: chapter.keyElevator.x, y: chapter.keyElevator.startY, w: chapter.keyElevator.w, h: chapter.keyElevator.h },
       active: false,
@@ -310,19 +316,39 @@ export class ChapterLoader {
     this.group.add(elevator.mesh)
     const spawnElevator = () => { elevatorSpawned = true; elevator.mesh.visible = true }
     elevator.mesh.visible = false
-    const activatePortal = () => { portalEnabled = true; exitPortal.visible = true }
-    const topLever = new Lever(this.group, chapter.topLever, (on) => { returnTriggerVisible = on; returnTrigger.mesh.visible = on }, audio)
+    const activatePortal = () => {
+      if (!portalEnabled) portalRevealPending = true
+      returnTriggerActivated = true
+      portalEnabled = true
+      exitPortal.visible = true
+    }
+    const topLever = new Lever(this.group, chapter.topLever, (on) => {
+      if (on && !returnTriggerVisible) triggerRevealPending = true
+      returnTriggerVisible = on
+      returnTrigger.setVisible(on)
+    }, audio)
     let restoring = false
     const keyLever = new Lever(this.group, chapter.keyLever, (on) => {
       setKeyStagesVisible(on)
       if (!restoring) keyLeverPulls += 1
-      if (keyLeverPulls >= 5) { keyTriggerVisible = true; keyTrigger.mesh.visible = true }
+      if (keyLeverPulls >= 5) { keyTriggerVisible = true; keyTrigger.setVisible(true) }
     }, audio)
 
     return {
       colliders: chapter.colliders,
       update(dt) {
         crushers.forEach((crusher) => crusher.update(dt, player))
+        const standingOnFloatingBlock = player.body.grounded && crushers.find((crusher) => {
+          const blockTop = crusher.body.y + crusher.body.h / 2
+          return Math.abs(player.body.x - crusher.body.x) < crusher.body.w / 2 - .05 && Math.abs((player.body.y - player.body.hh) - blockTop) < .12
+        })
+        if (standingOnFloatingBlock && !floatingRouteOrigin) floatingRouteOrigin = routeBeforeFloatingBlocks
+        else if (!standingOnFloatingBlock && player.body.grounded) {
+          if (player.body.y >= 13) routeBeforeFloatingBlocks = 'top'
+          else if (player.body.y <= 3) routeBeforeFloatingBlocks = 'left'
+          floatingRouteOrigin = null
+        }
+        if (returnTriggerActivated && player.body.grounded && !standingOnFloatingBlock && (player.body.y >= 13 || player.body.y <= -12.5)) returnTriggerRouteReached = true
         const topBoxPushed = topBox.update(dt, player, input, [...chapter.colliders, elevatorSpawned ? elevator.body : null].filter(Boolean))
         topLever.update(player, input, topBox.playerEngaged(player, input))
         keyLever.update(player, input)
@@ -342,16 +368,18 @@ export class ChapterLoader {
         ambient.update(dt, camera.camera.position.x)
       },
       dynamicColliders() { return [topBox.collider(), topLever.collider(), keyLever.collider(), elevatorSpawned ? elevator.body : null, ...(keyStagesVisible ? chapter.keyStages : []), ...crushers.map((crusher) => crusher.collider())].filter(Boolean) },
-      save() { return { topBox: topBox.save(), topLever: topLever.save(), returnTriggerVisible, keyLever: keyLever.save(), keyLeverPulls, keyTriggerVisible, elevatorSpawned, elevator: elevator.save(), portalEnabled } },
+      save() { return { topBox: topBox.save(), topLever: topLever.save(), returnTriggerVisible, returnTriggerActivated, returnTriggerRouteReached, keyLever: keyLever.save(), keyLeverPulls, keyTriggerVisible, elevatorSpawned, elevator: elevator.save(), portalEnabled } },
       restore(snapshot) {
         topBox.restore(snapshot.topBox)
         returnTriggerVisible = snapshot.returnTriggerVisible || false
-        returnTrigger.mesh.visible = returnTriggerVisible
+        returnTriggerActivated = snapshot.returnTriggerActivated ?? snapshot.portalEnabled ?? false
+        returnTriggerRouteReached = snapshot.returnTriggerRouteReached || false
+        returnTrigger.setVisible(returnTriggerVisible)
         topLever.restore(snapshot.topLever || false)
         restoring = true
         keyLeverPulls = snapshot.keyLeverPulls || 0
         keyTriggerVisible = snapshot.keyTriggerVisible || false
-        keyTrigger.mesh.visible = keyTriggerVisible
+        keyTrigger.setVisible(keyTriggerVisible)
         keyLever.restore(snapshot.keyLever || false)
         restoring = false
         elevatorSpawned = snapshot.elevatorSpawned || false
@@ -361,10 +389,19 @@ export class ChapterLoader {
         exitPortal.visible = portalEnabled
       },
       hits() { return false },
+      consumePortalReveal() {
+        if (triggerRevealPending) {
+          triggerRevealPending = false
+          return 'floatingRouteReverse'
+        }
+        const revealed = portalRevealPending
+        portalRevealPending = false
+        return revealed ? 'floatingRoute' : null
+      },
       recoverFall(target) {
-        const upperGapLeft = 12.3
-        const upperGapRight = 14.7
-        if (target.body.x > upperGapLeft && target.body.x < upperGapRight) return { x: 8, y: 14.2 }
+        if (returnTriggerActivated && !returnTriggerRouteReached) return { ...chapter.floatingRouteRespawns.left }
+        if (floatingRouteOrigin) return { ...chapter.floatingRouteRespawns[floatingRouteOrigin] }
+        if (routeBeforeFloatingBlocks === 'top') return { ...chapter.floatingRouteRespawns.top }
         return null
       },
       resetKey() { key.reset() },

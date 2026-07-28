@@ -109,6 +109,7 @@ function dieAtCheckpoint() {
   audio.death()
   camera.shake()
   document.querySelector('#death').classList.add('visible')
+  const carriedBox = player.carriedBox
   const keyId = chapterData.key?.id
   if (keyId && collectedKeys.has(keyId) && !bankedKeys.has(keyId)) {
     collectedKeys.delete(keyId)
@@ -117,6 +118,7 @@ function dieAtCheckpoint() {
   }
   const fallRespawn = chapter.recoverFall?.(player) || chapter.recoverCanyonFall?.(player)
   checkpoint.respawn(player, fallRespawn || checkpoint.position)
+  carriedBox?.placeNextTo(player)
   respawnGrace = .8
   setTimeout(() => document.querySelector('#death').classList.remove('visible'), 650)
 }
@@ -196,10 +198,13 @@ const game = new Game({
       return
     }
     chapter.update(dt)
-    if (chapter.consumePortalReveal?.()) {
+    const portalReveal = chapter.consumePortalReveal?.()
+    if (portalReveal) {
       portalPanActive = true
       input.clear()
-      camera.showPortal(chapterData.exitX + .25, chapterData.exitY)
+      if (portalReveal === 'floatingRoute') camera.showRoutePortal(chapterData.exitX + .25, chapterData.exitY)
+      else if (portalReveal === 'floatingRouteReverse') camera.showRouteTrigger(chapterData.returnTrigger.x, chapterData.returnTrigger.y)
+      else camera.showPortal(chapterData.exitX + .25, chapterData.exitY)
       camera.update(dt)
       return
     }

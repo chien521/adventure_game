@@ -32,11 +32,7 @@ export class Box {
     }
     if (this.carried) {
       if (input.actionPressed) {
-        this.carried = false
-        player.carriedBox = null
-        this.body.x = player.body.x + player.facing * .9
-        this.body.y = player.body.y - player.body.hh + this.body.h / 2
-        this.lastPlaced = { x: this.body.x, y: this.body.y }
+        this.placeNextTo(player)
         input.actionPressed = false
       } else {
         this.body.x = player.body.x
@@ -56,6 +52,15 @@ export class Box {
     if (standingOnBox) player.armBonusJump()
     this.sync()
     return false
+  }
+
+  placeNextTo(player) {
+    this.carried = false
+    player.carriedBox = null
+    this.body.x = player.body.x + player.facing * .9
+    this.body.y = player.body.y - player.body.hh + this.body.h / 2
+    this.lastPlaced = { x: this.body.x, y: this.body.y }
+    this.sync()
   }
 
   startFalling() { this.falling = true; this.fallVelocity = 0 }

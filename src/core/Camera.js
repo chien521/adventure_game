@@ -19,6 +19,30 @@ export class Camera {
 
   showPortal(x, y = 1.15) { this.portalPan = { x, y: Math.max(2.6, y + 1.4), phase: 'toPortal', elapsed: 0 } }
 
+  showRoutePortal(x, y) {
+    this.portalPan = {
+      start: { x: this.camera.position.x, y: this.camera.position.y },
+      controlA: { x: -4, y: 5.8 },
+      controlB: { x: 4.8, y: 12.2 },
+      end: { x, y: Math.max(14.5, y + 1.4) },
+      duration: 4.8,
+      phase: 'route',
+      elapsed: 0,
+    }
+  }
+
+  showRouteTrigger(x, y) {
+    this.portalPan = {
+      start: { x: this.camera.position.x, y: this.camera.position.y },
+      controlA: { x: 4.8, y: 12.2 },
+      controlB: { x: -4, y: 5.8 },
+      end: { x, y: Math.max(3.2, y + 3.1) },
+      duration: 4.8,
+      phase: 'route',
+      elapsed: 0,
+    }
+  }
+
   resize(width, height) { this.camera.aspect = width / height; this.camera.updateProjectionMatrix() }
 
   update(dt) {
@@ -32,7 +56,17 @@ export class Camera {
     let panFinished = false
     if (this.portalPan) {
       this.portalPan.elapsed += dt
-      if (this.portalPan.phase === 'toPortal') {
+      if (this.portalPan.phase === 'route') {
+        const t = Math.min(1, this.portalPan.elapsed / this.portalPan.duration)
+        const inverseT = 1 - t
+        const { start, controlA, controlB, end } = this.portalPan
+        this.camera.position.x = inverseT ** 3 * start.x + 3 * inverseT ** 2 * t * controlA.x + 3 * inverseT * t ** 2 * controlB.x + t ** 3 * end.x
+        this.camera.position.y = inverseT ** 3 * start.y + 3 * inverseT ** 2 * t * controlA.y + 3 * inverseT * t ** 2 * controlB.y + t ** 3 * end.y
+        if (t === 1) {
+          this.portalPan.phase = 'hold'
+          this.portalPan.elapsed = 0
+        }
+      } else if (this.portalPan.phase === 'toPortal') {
         this.camera.position.x += (this.portalPan.x - this.camera.position.x) * portalPanFactor
         this.camera.position.y += (this.portalPan.y - this.camera.position.y) * portalPanFactor
         if (this.portalPan.elapsed >= 2.4) { this.portalPan.phase = 'hold'; this.portalPan.elapsed = 0 }
