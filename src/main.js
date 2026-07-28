@@ -7,6 +7,7 @@ import { Camera } from './core/Camera.js'
 import { Audio } from './core/Audio.js'
 import { Checkpoint } from './core/Checkpoint.js'
 import { ChapterLoader } from './world/ChapterLoader.js'
+import { Flashback } from './world/Flashback.js'
 import { spring } from './chapters/spring.js'
 import { summer } from './chapters/summer.js'
 import { autumn } from './chapters/autumn.js'
@@ -14,10 +15,12 @@ import { winter } from './chapters/winter.js'
 
 const app = document.querySelector('#app')
 app.innerHTML = '<div id="start"><div id="start-content"><button id="start-button" type="button">enter</button><button id="guide-button" type="button">how to play</button><div id="chapter-select" aria-label="Select chapter"><button data-chapter="spring" type="button">spring</button><button data-chapter="summer" type="button">summer</button><button data-chapter="autumn" type="button">autumn</button><button data-chapter="winter" type="button">winter</button></div></div><section id="guide" aria-labelledby="guide-title" aria-hidden="true"><div id="guide-content"><p class="guide-kicker">UNDERTOW FIELD NOTES</p><h1 id="guide-title">Find a way through.</h1><div id="guide-grid"><article><kbd>A</kbd><kbd>D</kbd><h2>Move</h2><p>Run, jump, and use the terrain to find a route.</p></article><article><kbd>W</kbd><h2>Jump</h2><p>Standing on a carried block readies one extra jump.</p></article><article><kbd>E</kbd><h2>Act</h2><p>Carry blocks, pull levers, and place blocks on red triggers.</p></article><article><kbd>Q</kbd><h2>Return</h2><p>Use a lavender portal when you are close enough to it.</p></article><article><span class="guide-mark">KEY</span><h2>Collect</h2><p>Optional keys persist once you leave a chapter through its exit.</p></article><article><span class="guide-mark">CHECKPOINT</span><h2>Recover</h2><p>Passing a checkpoint changes where a fall sends you back.</p></article></div><button id="guide-back" type="button">back</button></div></section></div><div id="key-hud" aria-live="polite">keys <span id="key-hud-count">0</span></div><div id="death" aria-hidden="true"></div><div id="pause"><button data-pause="resume" type="button">resume</button><button data-pause="restart" type="button">restart chapter</button></div><div id="ending" aria-live="polite"><h1>UNDERTOW</h1><p id="ending-message">thank you for playing.</p><p id="key-count">0/4 keys</p></div><div id="touch-controls" aria-hidden="true"><div class="touch-half"><button data-input="left" aria-label="Move left">&#x2039;</button><button data-input="right" aria-label="Move right">&#x203a;</button></div><div class="touch-half"><button data-input="jump" aria-label="Jump">A</button><button data-input="action" aria-label="Action">B</button></div></div>'
+const locket = () => '<div class="locket" role="img" aria-label="0 of 4 memories recovered"><span data-key="spring"></span><span data-key="summer"></span><span data-key="autumn"></span><span data-key="winter"></span></div>'
+app.innerHTML = `<section id="prelude" aria-labelledby="prelude-title"><div id="prelude-content">${locket()}<p>He remembers nothing. Only that something is owed.</p><h1 id="prelude-title">What the Snow Remembers</h1><button id="prelude-continue" type="button">press to continue</button></div></section><div id="start"><div id="start-content"><button id="start-button" type="button">enter</button><button id="guide-button" type="button">how to play</button><div id="chapter-select" aria-label="Select chapter"><button data-chapter="spring" type="button">spring</button><button data-chapter="summer" type="button">summer</button><button data-chapter="autumn" type="button">autumn</button><button data-chapter="winter" type="button">winter</button></div></div><section id="guide" aria-labelledby="guide-title" aria-hidden="true"></section></div><div id="key-hud" aria-live="polite">${locket()}</div><div id="death" aria-hidden="true"></div><div id="pause"><button data-pause="resume" type="button">resume</button><button data-pause="restart" type="button">restart chapter</button></div><div id="ending" aria-live="polite">${locket()}<h1>What the Snow Remembers</h1><p id="ending-message"></p><p id="ending-message-detail"></p><p id="key-count">0/4 keys</p></div><div id="touch-controls" aria-hidden="true"><div class="touch-half"><button data-input="left" aria-label="Move left">&#x2039;</button><button data-input="right" aria-label="Move right">&#x203A;</button></div><div class="touch-half"><button data-input="jump" aria-label="Jump">&#x25B3;</button><button data-input="action" aria-label="Action">E</button><button data-input="portal" aria-label="Use portal">Q</button></div></div>`
 const guide = document.querySelector('#guide')
 guide.remove()
 app.append(guide)
-guide.innerHTML = '<div id="guide-content"><p class="guide-kicker">UNDERTOW FIELD NOTES</p><h1 id="guide-title">Find a way through.</h1><section class="guide-section" aria-labelledby="commands-title"><h2 id="commands-title">Key Commands</h2><div class="guide-grid guide-commands"><article><kbd>A</kbd><kbd>D</kbd><span class="key-or">or</span><kbd>&larr;</kbd><kbd>&rarr;</kbd><h3>Move</h3></article><article><kbd>W</kbd><span class="key-or">or</span><kbd>space</kbd><h3>Jump</h3></article><article><kbd>E</kbd><h3>Action</h3><p>Carry blocks and pull levers.</p></article><article><kbd>Q</kbd><h3>Portal</h3></article><article><kbd>escape</kbd><h3>Pause</h3></article></div></section><section class="guide-section" aria-labelledby="objects-title"><h2 id="objects-title">World Objects</h2><div class="guide-grid guide-objects"><article><span class="guide-mark">BLOCK</span><h3>Carry</h3><p>Carry blocks, stand on one to double jump, or place them on red triggers.</p></article><article><span class="guide-mark">LEVER</span><h3>Change</h3><p>Pull levers to move doors, platforms, and routes.</p></article><article><span class="guide-mark">PORTAL</span><h3>Return</h3><p>Use lavender portals when you are close enough to them.</p></article><article><span class="guide-mark">KEY</span><h3>Collect</h3><p>Optional keys persist once you leave through a chapter exit.</p></article><article><span class="guide-mark">CHECKPOINT</span><h3>Recover</h3><p>Passing one changes where a fall sends you back.</p></article></div></section><button id="guide-back" type="button">back</button></div>'
+guide.innerHTML = '<div id="guide-content"><p class="guide-kicker">WHAT THE SNOW REMEMBERS FIELD NOTES</p><h1 id="guide-title">Find a way through.</h1><section class="guide-section" aria-labelledby="commands-title"><h2 id="commands-title">Key Commands</h2><div class="guide-grid guide-commands"><article><kbd>A</kbd><kbd>D</kbd><span class="key-or">or</span><kbd>&larr;</kbd><kbd>&rarr;</kbd><h3>Move</h3></article><article><kbd>W</kbd><span class="key-or">or</span><kbd>space</kbd><h3>Jump</h3></article><article><kbd>E</kbd><h3>Action</h3><p>Carry blocks and pull levers.</p></article><article><kbd>Q</kbd><h3>Portal</h3></article><article><kbd>escape</kbd><h3>Pause</h3></article></div></section><section class="guide-section" aria-labelledby="objects-title"><h2 id="objects-title">World Objects</h2><div class="guide-grid guide-objects"><article><span class="guide-mark">BLOCK</span><h3>Carry</h3><p>Carry blocks, stand on one to double jump, or place them on red triggers.</p></article><article><span class="guide-mark">LEVER</span><h3>Change</h3><p>Pull levers to move doors, platforms, and routes.</p></article><article><span class="guide-mark">PORTAL</span><h3>Return</h3><p>Use lavender portals when you are close enough to them.</p></article><article><span class="guide-mark">KEY</span><h3>Collect</h3><p>Optional keys persist once you leave through a chapter exit.</p></article><article><span class="guide-mark">CHECKPOINT</span><h3>Recover</h3><p>Passing one changes where a fall sends you back.</p></article></div></section><button id="guide-back" type="button">back</button></div>'
 const pauseGuideButton = document.createElement('button')
 pauseGuideButton.type = 'button'
 pauseGuideButton.textContent = 'how to play'
@@ -42,6 +45,8 @@ const loader = new ChapterLoader(scene)
 const collectedKeys = new Set()
 const bankedKeys = new Set()
 const chapterStates = new Map()
+let flashback = null
+let flashbackActive = false
 let chapterData = spring
 let chapter = loader.load(chapterData, player, input, audio, camera, collectedKeys)
 camera.setZones(chapterData.zones || [])
@@ -70,6 +75,9 @@ lamp.position.set(9, 5, 1)
 scene.add(lamp)
 
 function loadChapter(nextChapter, entryPosition = nextChapter.spawn, restoreState = false) {
+  flashback?.dispose()
+  flashback = null
+  flashbackActive = false
   chapterData = nextChapter
   chapter = loader.load(chapterData, player, input, audio, camera, collectedKeys)
   camera.setZones(chapterData.zones || [])
@@ -100,7 +108,12 @@ function beginEnding() {
 }
 
 let respawnGrace = 0
-function updateKeyHud() { document.querySelector('#key-hud-count').textContent = collectedKeys.size }
+function updateKeyHud() {
+  document.querySelectorAll('.locket').forEach((element) => {
+    element.setAttribute('aria-label', `${collectedKeys.size} of 4 memories recovered`)
+    element.querySelectorAll('[data-key]').forEach((slot) => slot.classList.toggle('filled', collectedKeys.has(slot.dataset.key)))
+  })
+}
 function bankCurrentKey() {
   const keyId = chapterData.key?.id
   if (keyId && collectedKeys.has(keyId)) bankedKeys.add(keyId)
@@ -130,15 +143,23 @@ function finish() {
   finished = true
   audio.stopHeartbeat()
   const keyCount = collectedKeys.size
-  const endingMessage = keyCount === 0 ? 'the house waits with its windows dark.' : keyCount === 1 ? 'one small light answers.' : keyCount === 2 ? 'two lights carry you through the dark.' : 'every gathered light finds its way home.'
-  document.querySelector('#ending-message').textContent = endingMessage
+  const endings = [
+    ['He reached the end and remembered nothing.', 'Somewhere, it began to snow again.'],
+    ['One thing remained. He held onto it,', 'not knowing what it was for.'],
+    ['Two fragments, and between them,', 'the shape of someone he had loved.'],
+    ['Almost enough to be a life.', 'One season still missing.'],
+    ['Spring, summer, autumn, winter — his, all of it.', 'He closed his eyes. This time, on purpose.'],
+  ]
+  document.querySelector('#ending-message').textContent = endings[keyCount][0]
+  document.querySelector('#ending-message-detail').textContent = endings[keyCount][1]
   document.querySelector('#key-count').textContent = `${keyCount}/4 keys`
+  updateKeyHud()
   document.querySelector('#ending').classList.add('visible')
 }
 
 function setPaused(value) { paused = value; document.querySelector('#pause').classList.toggle('visible', paused); if (!paused) renderer.domElement.focus() }
 addEventListener('keydown', (event) => {
-  if (event.code !== 'Escape' || finished || ending) return
+  if (event.code !== 'Escape' || finished || ending || flashbackActive) return
   event.preventDefault()
   if (guide.classList.contains('visible')) setGuideVisible(false)
   else setPaused(!paused)
@@ -170,7 +191,9 @@ const game = new Game({
       // Walk toward the house and stop at its doorstep; stand there while the dawn fade completes.
       // Offset must clear the close house's half-width (1.2) plus the player's half-width (.28)
       // plus a visible gap, or the player model clips into the house mesh in the final shot.
-      const arrivalX = (chapterData.destinationX ?? Infinity) - 1.8
+      const arrivalX = collectedKeys.size === 0
+        ? (chapterData.destinationX ?? Infinity) - 6
+        : (chapterData.destinationX ?? Infinity) - 1.8
       player.body.x = Math.min(player.body.x + endingWalkSpeed * dt, arrivalX)
       const walkSpeed = player.body.x < arrivalX ? endingWalkSpeed : 0
       player.facing = 1
@@ -184,6 +207,15 @@ const game = new Game({
       }
       camera.update(dt)
       if (endingElapsed >= endingDuration) finish()
+      return
+    }
+    if (flashbackActive) {
+      input.clear()
+      if (flashback.update(dt, camera)) {
+        flashback.dispose()
+        flashback = null
+        flashbackActive = false
+      }
       return
     }
     if (portalPanActive) {
@@ -209,6 +241,10 @@ const game = new Game({
     if (keyId) {
       collectedKeys.add(keyId)
       updateKeyHud()
+      flashback = new Flashback(scene, keyId)
+      flashbackActive = true
+      input.clear()
+      return
     }
     respawnGrace = Math.max(0, respawnGrace - dt)
     const activeFallDeathY = chapterData === autumn ? autumnFallDeathY : fallDeathY
@@ -264,6 +300,16 @@ chapterSelect.before(chapterSelectionTitle)
 chapterSelect.after(chapterBackButton)
 document.querySelector('#start-button').addEventListener('click', () => document.querySelector('#start').classList.add('chapter-selection'))
 chapterBackButton.addEventListener('click', () => document.querySelector('#start').classList.remove('chapter-selection'))
+const dismissPrelude = () => {
+  const prelude = document.querySelector('#prelude')
+  if (!prelude) return
+  prelude.classList.add('hidden')
+  setTimeout(() => prelude.remove(), 700)
+}
+document.querySelector('#prelude-continue').addEventListener('click', dismissPrelude)
+addEventListener('keydown', (event) => {
+  if (event.code !== 'Escape' && document.querySelector('#prelude')) dismissPrelude()
+}, { once: true })
 const setGuideVisible = (visible) => {
   guide.classList.toggle('visible', visible)
   guide.setAttribute('aria-hidden', String(!visible))
@@ -278,7 +324,8 @@ const chapters = { spring, summer, autumn, winter }
 document.querySelectorAll('[data-chapter]').forEach((button) => {
   button.addEventListener('click', () => startGame(chapters[button.dataset.chapter]))
 })
-console.info(`UNDERTOW build ${import.meta.env.VITE_BUILD_TAG || 'dev'}`)
+updateKeyHud()
+console.info(`What the Snow Remembers build ${import.meta.env.VITE_BUILD_TAG || 'dev'}`)
 if (import.meta.env.DEV) {
   window.__game = {
     player,
@@ -286,6 +333,7 @@ if (import.meta.env.DEV) {
     input,
     get paused() { return paused },
     get portalPanActive() { return portalPanActive },
+    get flashbackActive() { return flashbackActive },
     get chapter() { return chapter },
     get chapterData() { return chapterData },
     get collectedKeys() { return collectedKeys },
