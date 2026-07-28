@@ -62,7 +62,7 @@ export const summer = {
   middleStage: { x: -36.5, y: 2.9, w: 2.2, h: .35 },
   highLever: { x: -36.5, y: 3.75, solid: true },
   skyBlock: { x: -33.8, y: 4.45, w: 1.5, h: .4 },
-  key: { id: 'summer', x: -35, y: 8.1, hidden: true },
+  key: { id: 'summer', x: -35, y: 7, hidden: true },
   returnPortalX: -22,
   exitX: 22.85,
 }

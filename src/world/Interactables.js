@@ -18,7 +18,7 @@ export class Box {
     this.fallVelocity = 0
     this.carried = false
     this.lastPlaced = { x: this.body.x, y: this.body.y }
-    this.mesh = createMesh(this.body, '#536b71')
+    this.mesh = createMesh(this.body, '#4DFFFF')
     scene.add(this.mesh)
     this.sync()
   }

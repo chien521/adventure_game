@@ -103,7 +103,7 @@ export class ChapterLoader {
     let canyonLever = null
     const syncCanyonLeverToDoor = () => {
       if (!canyonLever || !openDoor) return
-      canyonLever.setPosition(openDoor.body.x, openDoor.body.y + (openDoor.open ? 3.5 : 0) - openDoor.body.h / 2 + .5)
+      canyonLever.setPosition(openDoor.body.x, openDoor.body.y + (openDoor.open ? 3.5 : 0) - openDoor.body.h / 2 - .25)
     }
     const hiddenTerrain = chapter.hiddenTerrain ? chapter.colliders.find((collider) => collider.x === chapter.hiddenTerrain.x && collider.y === chapter.hiddenTerrain.y && collider.w === chapter.hiddenTerrain.w && collider.h === chapter.hiddenTerrain.h) : null
     const hiddenTerrainMesh = hiddenTerrain ? this.colliderMeshes.get(hiddenTerrain) : null
@@ -206,7 +206,7 @@ export class ChapterLoader {
           if (middleStageVisible) highLever.update(player, input, engaged)
           const blockTop = chapter.skyBlock.y + chapter.skyBlock.h / 2
           const standingOnSkyBlock = skyBlockVisible && Math.abs(player.body.x - chapter.skyBlock.x) < chapter.skyBlock.w / 2 - .05 && Math.abs((player.body.y - player.body.hh) - blockTop) < .08
-          if (standingOnSkyBlock) { player.armBonusJump(); key.reveal() }
+          if (standingOnSkyBlock) key.reveal()
         }
         const boxBlockers = [...this.colliders, door.collider(), canyonBridgeVisible ? chapter.canyonBridge : null].filter(Boolean)
         const pushed = box.update(dt, player, input, boxBlockers)

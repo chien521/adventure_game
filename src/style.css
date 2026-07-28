@@ -6,19 +6,43 @@ canvas { position: fixed; inset: 0; z-index: 0; }
 #start { position: fixed; inset: 0; z-index: 4; display: grid; place-items: center; background: #101820; transition: opacity .7s ease; }
 #start.hidden { opacity: 0; pointer-events: none; }
 #start-content { display: grid; justify-items: center; gap: 1.6rem; }
+#start.chapter-selection #start-button, #start.chapter-selection #guide-button { display: none; }
+#start:not(.chapter-selection) #chapter-select, #start:not(.chapter-selection) #chapter-selection-title, #start:not(.chapter-selection) #chapter-back { display: none; }
+#guide-button, #guide-back { color: #aebfc0; background: transparent; border: 1px solid #4f6870; padding: .45rem .8rem; font: 600 .74rem/1 system-ui, sans-serif; letter-spacing: .08rem; text-transform: uppercase; cursor: pointer; }
+#chapter-back, #guide-button, #guide-back { color: #aebfc0; background: transparent; border: 1px solid #4f6870; padding: .45rem .8rem; font: 600 .74rem/1 system-ui, sans-serif; letter-spacing: .08rem; text-transform: uppercase; cursor: pointer; }
+#chapter-back:hover, #chapter-back:focus-visible, #guide-button:hover, #guide-button:focus-visible, #guide-back:hover, #guide-back:focus-visible { color: #101820; background: #d8e8e8; outline: none; }
+#chapter-selection-title { margin: 0; color: #86b8bd; font: 600 .68rem/1 system-ui, sans-serif; letter-spacing: .16rem; text-transform: uppercase; }
 #chapter-select { display: grid; grid-template-columns: repeat(2, 1fr); gap: .4rem; width: 14rem; }
 #chapter-select button { color: #aebfc0; background: transparent; border: 1px solid #4f6870; padding: .45rem .6rem; font: 600 .74rem/1 system-ui, sans-serif; letter-spacing: .08rem; text-transform: uppercase; cursor: pointer; }
 #chapter-select button:hover, #chapter-select button:focus-visible { color: #101820; background: #d8e8e8; outline: none; }
 #controls { display: grid; gap: .45rem; color: #aebfc0; font: 500 .78rem/1.35 system-ui, sans-serif; letter-spacing: .04rem; text-align: center; }
 #controls p { margin: 0; }
 #controls kbd { display: inline-block; min-width: 1.2rem; margin: 0 .06rem; padding: .1rem .22rem; color: #e7f1f0; border: 1px solid #637f87; font: 600 .72rem/1 monospace; }
+#guide { position: fixed; inset: 0; z-index: 6; display: none; place-items: center; background: #101820; }
+#guide.visible { display: grid; }
+#guide-content { width: min(44rem, calc(100vw - 2.5rem)); display: grid; justify-items: center; gap: 1.35rem; color: #d8e8e8; }
+.guide-kicker { margin: 0; color: #86b8bd; font: 600 .68rem/1 system-ui, sans-serif; letter-spacing: .16rem; }
+#guide h1 { margin: 0; font: 500 clamp(1.65rem, 4vw, 2.5rem)/1 Georgia, serif; letter-spacing: 0; }
+.guide-section { width: 100%; }
+.guide-section > h2 { margin: 0 0 .45rem; color: #86b8bd; font: 600 .68rem/1 system-ui, sans-serif; letter-spacing: .14rem; text-transform: uppercase; }
+.guide-grid { display: grid; width: 100%; border: 1px solid #4f6870; }
+.guide-commands { grid-template-columns: 1.5fr repeat(4, 1fr); }
+.guide-objects { grid-template-columns: repeat(5, 1fr); }
+.guide-grid article { min-height: 5.8rem; padding: .8rem; border-right: 1px solid #4f6870; }
+.guide-grid article:last-child { border-right: 0; }
+.guide-grid h3 { margin: .65rem 0 0; font: 600 .7rem/1 system-ui, sans-serif; letter-spacing: .08rem; text-transform: uppercase; }
+.guide-objects article { min-height: 7.8rem; }
+.guide-grid p { margin: .35rem 0 0; color: #aebfc0; font: 500 .72rem/1.4 system-ui, sans-serif; }
+.guide-grid kbd, .guide-mark { display: inline-block; min-width: 1.2rem; margin-right: .14rem; padding: .1rem .22rem; color: #e7f1f0; border: 1px solid #637f87; font: 600 .72rem/1 monospace; }
+.key-or { display: inline-block; margin-right: .14rem; color: #74898d; font: 500 .65rem/1 system-ui, sans-serif; }
+.guide-mark { color: #ffe36a; border-color: #a98f43; font: 600 .61rem/1 system-ui, sans-serif; letter-spacing: .04rem; }
 #key-hud { position: fixed; z-index: 2; top: 1rem; left: 1rem; color: #dce7d8; font: 600 .76rem/1 system-ui, sans-serif; letter-spacing: .1rem; text-transform: uppercase; pointer-events: none; }
 #key-hud-count { color: #ffe36a; }
 #death { position: fixed; inset: 0; z-index: 5; pointer-events: none; background: #000; opacity: 0; transition: opacity .12s ease; }
 #death.visible { opacity: 1; }
-#pause { position: fixed; inset: 0; z-index: 4; display: none; place-content: center; justify-items: center; gap: .6rem; background: #091114d9; }
+#pause { position: fixed; inset: 0; z-index: 4; display: none; place-content: center; justify-items: center; gap: 1.4rem; background: #091114d9; }
 #pause.visible { display: grid; }
-#pause button { min-width: 10rem; color: #d8e8e8; background: transparent; border: 1px solid #7e9ca4; padding: .55rem 1rem; font: 500 .9rem/1 system-ui, sans-serif; letter-spacing: .08rem; text-transform: uppercase; cursor: pointer; }
+#pause button { width: 12.5rem; min-height: 2.7rem; color: #d8e8e8; background: transparent; border: 1px solid #7e9ca4; padding: .55rem 1rem; font: 500 .9rem/1 system-ui, sans-serif; letter-spacing: .08rem; text-transform: uppercase; cursor: pointer; }
 #pause button:hover, #pause button:focus-visible { color: #101820; background: #d8e8e8; outline: none; }
 #ending { position: fixed; inset: 0; z-index: 4; display: grid; align-content: center; justify-items: center; gap: .25rem; color: #e7eded; background: #11191a; opacity: 0; pointer-events: none; transition: opacity 2s ease; }
 #ending.visible { opacity: 1; }
@@ -32,3 +56,4 @@ canvas { position: fixed; inset: 0; z-index: 0; }
 .touch-half button { width: 3.5rem; height: 3.5rem; border: 1px solid #8eaeb7; border-radius: 50%; color: #e7f1f0; background: #152832aa; font: 600 1.1rem/1 monospace; touch-action: none; }
 .touch-half button:active { color: #102027; background: #c2dde0; }
 @media (hover: none), (pointer: coarse) { #touch-controls { display: flex; } }
+@media (max-width: 560px) { #start-content { gap: 1rem; } #guide-content { width: min(30rem, calc(100vw - 2rem)); gap: .85rem; } .guide-commands, .guide-objects { grid-template-columns: repeat(2, 1fr); } .guide-grid article { min-height: auto; padding: .65rem; border-bottom: 1px solid #4f6870; } .guide-grid article:nth-child(2n) { border-right: 0; } .guide-grid article:last-child { border-bottom: 0; } .guide-objects article { min-height: 5.6rem; } }

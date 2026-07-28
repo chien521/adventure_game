@@ -12,7 +12,7 @@ export const autumn = {
   ],
   backgrounds: [],
   checkpoints: [{ x: -20.5, y: 2 }, { x: -14, y: 2 }, { x: -8, y: 2 }, { x: 14, y: 14.2 }, { x: 20.5, y: 14.2 }],
-  crushers: [{ x: -5.5, y: 3.4, w: 1.3 }, { x: -3.6, y: 5.75, w: 1.3, minY: 3.4, phase: Math.PI * 1.5 }, { x: -1.7, y: 8.1, w: 1.3, minY: 5.75 }, { x: .2, y: 10.45, w: 1.3, minY: 8.1, phase: Math.PI * 1.5 }, { x: 2.1, y: 12.8, w: 1.3, minY: 10.45 }],
+  crushers: [{ x: -5.5, y: 2.2, w: 1.3, minY: 1.05, phase: Math.PI * 1.5 }, { x: -3.6, y: 4.05, w: 1.3, minY: 2.2, phase: Math.PI * 1.5 }, { x: -1.7, y: 5.9, w: 1.3, minY: 4.05 }, { x: .2, y: 7.75, w: 1.3, minY: 5.9, phase: Math.PI * 1.5 }, { x: 2.1, y: 12.8, w: 1.3, minY: 7.75 }],
   key: { id: 'autumn', x: 5.2, y: -13.35 },
   keyLever: { x: 7.1, y: -13.25, solid: true },
   keyStages: Array.from({ length: 19 }, (_, index) => ({ x: index % 2 === 0 ? 4 : 6.6, y: -12.45 + index * 1.35, w: 1.2, h: .25 })),
