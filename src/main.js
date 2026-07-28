@@ -258,6 +258,7 @@ async function startGame(nextChapter = spring) {
 }
 
 const chapterSelect = document.querySelector('#chapter-select')
+chapterSelect.innerHTML = '<button class="chapter-card chapter-spring" data-chapter="spring" type="button"><span class="chapter-number">01</span><span class="chapter-season">spring</span><span class="chapter-route">the floodline</span></button><button class="chapter-card chapter-summer" data-chapter="summer" type="button"><span class="chapter-number">02</span><span class="chapter-season">summer</span><span class="chapter-route">the outskirts</span></button><button class="chapter-card chapter-autumn" data-chapter="autumn" type="button"><span class="chapter-number">03</span><span class="chapter-season">autumn</span><span class="chapter-route">the works</span></button><button class="chapter-card chapter-winter" data-chapter="winter" type="button"><span class="chapter-number">04</span><span class="chapter-season">winter</span><span class="chapter-route">the core</span></button>'
 const chapterSelectionTitle = document.createElement('p')
 chapterSelectionTitle.id = 'chapter-selection-title'
 chapterSelectionTitle.textContent = 'choose a chapter'
