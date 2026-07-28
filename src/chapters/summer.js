@@ -6,7 +6,8 @@ export const summer = {
   colliders: [
     { x: -15.25, y: -.5, w: 49.5, h: 1 },
     { x: 21.25, y: -.5, w: 6, h: 1 },
-    { x: -26.3, y: 1.7, w: .6, h: 3.4 },
+    // top at 3.0: reachable by box + bonus jump (max ~3.28); at the old 3.4 the key route was unreachable
+    { x: -26.3, y: 1.5, w: .6, h: 3 },
     { x: 24.2, y: 1.5, w: .6, h: 4 },
     { x: -16, y: .55, w: 1.4, h: 1.1 },
     { x: -14.6, y: .55, w: 1.4, h: 1.1 },

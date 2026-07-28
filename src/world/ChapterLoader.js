@@ -1,7 +1,7 @@
 import * as THREE from 'three'
 import { Box, Door, Lever, PressurePlate } from './Interactables.js'
 import { KillVolume, Searchlight, Crusher } from './Hazards.js'
-import { buildOutskirtsAmbient, buildWorksAmbient, buildWinterAmbient } from './Ambient.js'
+import { buildOutskirtsAmbient, buildWorksAmbient } from './Ambient.js'
 
 export class ChapterLoader {
   constructor(scene) { this.scene = scene; this.group = null }
@@ -568,62 +568,88 @@ export class ChapterLoader {
   }
 
   loadCore(chapter, player, input, audio, collectedKeys) {
-    const ambient = buildWinterAmbient(this.group, chapter)
     const key = this.createKey(chapter, collectedKeys)
-    const core = new THREE.Group()
-    core.position.set(6, 4.5, -2)
-    for (const radius of [1.4, 2.15, 2.9]) {
-      const ring = new THREE.Mesh(new THREE.TorusGeometry(radius, .12, 6, 24), new THREE.MeshStandardMaterial({ color: '#e8f0ee', emissive: '#657578', emissiveIntensity: .3, roughness: .5 }))
-      ring.rotation.x = Math.PI / 2
-      core.add(ring)
+    const signal = (object, color, intensity = 1.2) => {
+      const light = new THREE.PointLight(color, intensity, 3, 2)
+      light.position.set(0, 0, .8)
+      object.mesh.add(light)
+      return light
     }
-    this.group.add(core)
-    const beacon = new THREE.PointLight(chapter.palette.accent, 0, 6, 2)
+    const markDoor = (door) => {
+      door.mesh.material.color.set('#314b56')
+      door.mesh.material.emissive.set('#63dce4')
+      door.mesh.material.emissiveIntensity = .45
+      signal(door, '#63dce4', 1.35)
+    }
+    const addBridge = (bridge, visible = false) => {
+      const material = new THREE.MeshStandardMaterial({ color: '#d9f4f4', emissive: '#63dce4', emissiveIntensity: .45, roughness: .7 })
+      const mesh = new THREE.Mesh(new THREE.BoxGeometry(bridge.w, bridge.h, .9), material)
+      mesh.position.set(bridge.x, bridge.y, 0)
+      mesh.castShadow = true
+      mesh.visible = visible
+      const light = new THREE.PointLight('#8cecf0', 0, 5, 2)
+      light.position.set(0, .5, .8)
+      mesh.add(light)
+      this.group.add(mesh)
+      return { mesh, light }
+    }
+    const coreBox = new Box(this.group, chapter.coreBox, { min: -16.5, max: chapter.finalPlate.x + .35 }, chapter.boxInteractions)
+    const gateDoor = new Door(this.group, chapter.gateDoor)
+    markDoor(gateDoor)
+    const gatePlate = new PressurePlate(this.group, chapter.gatePlate, (pressed) => { if (pressed) gateDoor.setOpen(true) })
+    signal(gatePlate, '#ff6978')
+    const signalBridge = addBridge(chapter.signalBridge)
+    let signalBridgeActive = false
+    const setSignalBridge = (active) => {
+      signalBridgeActive = active
+      signalBridge.mesh.visible = active
+      signalBridge.light.intensity = active ? 2.2 : 0
+    }
+    const signalPlate = new PressurePlate(this.group, chapter.signalPlate, (pressed) => { if (pressed) setSignalBridge(true) })
+    signal(signalPlate, '#8cecf0')
+    const finalDoor = new Door(this.group, chapter.finalDoor)
+    markDoor(finalDoor)
+    const finalBridge = addBridge(chapter.finalBridge)
+    const beacon = new THREE.PointLight('#dffcff', 0, 7, 2)
     beacon.position.set(chapter.exitX - .7, 2.8, 1)
     this.group.add(beacon)
-    const exitPortal = this.exitPortal
-    const coreBox = new Box(this.group, chapter.coreBox, { min: -16.5, max: 9 }, chapter.boxInteractions)
-    const gateDoor = new Door(this.group, chapter.gateDoor)
-    const gatePlate = new PressurePlate(this.group, chapter.gatePlate, (pressed) => { if (pressed) gateDoor.setOpen(true) })
-    const bridgeMaterial = new THREE.MeshStandardMaterial({ color: chapter.palette.structure, emissive: chapter.palette.accent, emissiveIntensity: .38, roughness: .75 })
-    const finalBridge = new THREE.Mesh(new THREE.BoxGeometry(chapter.finalBridge.w, chapter.finalBridge.h, .9), bridgeMaterial)
-    finalBridge.position.set(chapter.finalBridge.x, chapter.finalBridge.y, 0)
-    finalBridge.castShadow = true
-    finalBridge.visible = false
-    this.group.add(finalBridge)
-    let bridgeActive = false
-    const bridgePlate = new PressurePlate(this.group, chapter.bridgePlate, (pressed) => {
-      if (!pressed || bridgeActive) return
-      bridgeActive = true
-      finalBridge.visible = true
-      exitPortal.visible = true
-      beacon.intensity = 5
-    })
+    let finalRouteActive = false
+    const setFinalRoute = (active) => {
+      finalRouteActive = active
+      finalDoor.setOpen(active)
+      finalBridge.mesh.visible = active
+      finalBridge.light.intensity = active ? 3 : 0
+      this.exitPortal.visible = active
+      beacon.intensity = active ? 5 : 0
+    }
+    const finalPlate = new PressurePlate(this.group, chapter.finalPlate, (pressed) => { if (pressed) setFinalRoute(true) })
+    signal(finalPlate, '#ff6978')
     return {
       colliders: chapter.colliders,
       update(dt) {
-        core.rotation.z += dt * .25
-        const boxPushed = coreBox.update(dt, player, input, [...chapter.colliders, gateDoor.collider(), bridgeActive ? chapter.finalBridge : null].filter(Boolean))
+        const boxPushed = coreBox.update(dt, player, input, [...chapter.colliders, gateDoor.collider(), finalDoor.collider(), signalBridgeActive ? chapter.signalBridge : null, finalRouteActive ? chapter.finalBridge : null].filter(Boolean))
         gatePlate.update(coreBox)
-        bridgePlate.update(coreBox)
+        signalPlate.update(coreBox)
+        finalPlate.update(coreBox)
         player.setPushing(boxPushed)
         key.update(dt)
-        ambient.update(dt, player.body.x)
       },
-      dynamicColliders() { return [coreBox.collider(), gateDoor.collider(), bridgeActive ? chapter.finalBridge : null].filter(Boolean) },
-      save() { return { coreBox: coreBox.save(), gateDoor: gateDoor.save(), bridgeActive } },
+      dynamicColliders() { return [coreBox.collider(), gateDoor.collider(), finalDoor.collider(), signalBridgeActive ? chapter.signalBridge : null, finalRouteActive ? chapter.finalBridge : null].filter(Boolean) },
+      save() { return { coreBox: coreBox.save(), gateDoor: gateDoor.save(), gatePlateRemaining: gatePlate.remaining, signalBridgeActive, signalPlateRemaining: signalPlate.remaining, finalDoor: finalDoor.save(), finalPlateRemaining: finalPlate.remaining, finalRouteActive } },
       restore(snapshot) {
         coreBox.restore(snapshot.coreBox)
         gateDoor.restore(snapshot.gateDoor)
-        bridgeActive = snapshot.bridgeActive || false
-        finalBridge.visible = bridgeActive
-        exitPortal.visible = bridgeActive
-        beacon.intensity = bridgeActive ? 5 : 0
+        gatePlate.setRemaining(snapshot.gatePlateRemaining ?? (snapshot.gateDoor ? 0 : 1))
+        setSignalBridge(snapshot.signalBridgeActive || false)
+        signalPlate.setRemaining(snapshot.signalPlateRemaining ?? (snapshot.signalBridgeActive ? 0 : 1))
+        finalDoor.restore(snapshot.finalDoor ?? snapshot.finalRouteActive ?? false)
+        setFinalRoute(snapshot.finalRouteActive || false)
+        finalPlate.setRemaining(snapshot.finalPlateRemaining ?? (snapshot.finalRouteActive ? 0 : 1))
       },
       hits() { return false },
       resetKey() { key.reset() },
       collectKey(target) { return key.collect(target) },
-      reachedExit(target) { return bridgeActive && target.body.x > chapter.exitX },
+      reachedExit(target) { return finalRouteActive && target.body.x > chapter.exitX },
     }
   }
 }

@@ -6,7 +6,9 @@ export const autumn = {
     { x: -16.1, y: -.5, w: 15.6, h: 1 },
     { x: -24.2, y: 1.5, w: .6, h: 4 },
     { x: -7.5, y: .55, w: 1.5, h: 1.1 },
-    { x: 9.25, y: 12.8, w: 6.1, h: .3 },
+    // Left edge at 4.6 (was 6.2): the leap from the last crusher was a 3.45 gap — exactly
+    // the maximum possible run-jump, i.e. frame-perfect-impossible from a 1.3-wide block.
+    { x: 8.45, y: 12.8, w: 7.7, h: .3 },
     { x: 19.3, y: 12.8, w: 9.2, h: .3 },
     { x: 7.75, y: -13.8, w: 7.1, h: .3 },
   ],

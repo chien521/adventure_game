@@ -110,12 +110,6 @@ function dieAtCheckpoint() {
   camera.shake()
   document.querySelector('#death').classList.add('visible')
   const carriedBox = player.carriedBox
-  const keyId = chapterData.key?.id
-  if (keyId && collectedKeys.has(keyId) && !bankedKeys.has(keyId)) {
-    collectedKeys.delete(keyId)
-    chapter.resetKey?.()
-    updateKeyHud()
-  }
   const fallRespawn = chapter.recoverFall?.(player) || chapter.recoverCanyonFall?.(player)
   checkpoint.respawn(player, fallRespawn || checkpoint.position)
   carriedBox?.placeNextTo(player)
@@ -285,3 +279,18 @@ document.querySelectorAll('[data-chapter]').forEach((button) => {
   button.addEventListener('click', () => startGame(chapters[button.dataset.chapter]))
 })
 console.info(`UNDERTOW build ${import.meta.env.VITE_BUILD_TAG || 'dev'}`)
+if (import.meta.env.DEV) {
+  window.__game = {
+    player,
+    scene,
+    input,
+    get paused() { return paused },
+    get portalPanActive() { return portalPanActive },
+    get chapter() { return chapter },
+    get chapterData() { return chapterData },
+    get collectedKeys() { return collectedKeys },
+    get checkpointIndex() { return checkpointIndex },
+    get ending() { return ending },
+    get finished() { return finished },
+  }
+}
