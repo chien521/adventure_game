@@ -17,7 +17,9 @@ export const winter = {
   rightCanyon: {
     minX: 24.5,
     rightWallFallMinX: 23.5,
+    topRouteFallY: 6.2,
     keyLeverRespawn: { x: 12, y: 1.9, block: { x: 13, y: .5 } },
+    topRouteDropRespawn: { x: 12, y: 1.9, block: { x: 13, y: .5 } },
     portalLeverRespawn: { x: 12, y: 7.25, block: { x: 13, y: 6.85 } },
   },
   elevatorLever: { offsetX: 1.3, offsetY: .62 },

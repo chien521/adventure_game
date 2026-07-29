@@ -631,7 +631,7 @@ export class ChapterLoader {
       lever.mesh.material.emissive.set('#63dce4')
       lever.mesh.material.emissiveIntensity = .8
     })
-    const groundBox = new Box(this.group, chapter.groundBox, { min: -16.5, max: 12.7 })
+    const groundBox = new Box(this.group, chapter.groundBox, { min: -16.5, max: 12.7 }, { carry: true, push: false, edgeDropForward: true })
     const groundDoor = new Door(this.group, chapter.groundDoor)
     groundDoor.mesh.material.color.set('#314b56')
     groundDoor.mesh.material.emissive.set('#63dce4')
@@ -693,7 +693,9 @@ export class ChapterLoader {
     }, audio, { oneShot: true })
     let routeRespawn = { ...chapter.spawn }
     let rightCanyonRoute = 'ground'
+    let rightCanyonDroppedBelowTopRoute = false
     let rightCanyonBlockNearby = false
+    let rightCanyonBlockJumpRoute = null
     const playerSpaceIsClear = (position) => [
       ...chapter.colliders,
       elevator.body,
@@ -719,10 +721,16 @@ export class ChapterLoader {
         secondTopPlate.update(groundBox)
         const standingOnBlock = !groundBox.carried && !groundBox.falling && Math.abs(player.body.x - groundBox.body.x) < groundBox.body.w / 2 + player.body.hw - .05 && Math.abs((player.body.y - player.body.hh) - (groundBox.body.y + groundBox.body.h / 2)) < .08
         if (!standingOnBlock && player.jumpLaunchBlock !== groundBox && player.body.grounded && playerSpaceIsClear(player.body)) routeRespawn = { x: player.body.x, y: player.body.y }
+        if (player.jumpLaunchBlock === groundBox) rightCanyonBlockJumpRoute = groundBox.body.y >= 5 ? 'upper' : 'ground'
+        else if (player.body.grounded) rightCanyonBlockJumpRoute = null
         if (standingOnBlock || player.jumpLaunchBlock === groundBox || (player.body.grounded && player.body.y > .5)) {
-          rightCanyonRoute = player.body.y >= 5 ? 'upper' : 'ground'
+          rightCanyonRoute = player.jumpLaunchBlock === groundBox
+            ? (groundBox.body.y >= 5 ? 'upper' : 'ground')
+            : (player.body.y >= 5 ? 'upper' : 'ground')
+          rightCanyonDroppedBelowTopRoute = false
           rightCanyonBlockNearby = groundBox.carried || standingOnBlock || Math.hypot(player.body.x - groundBox.body.x, player.body.y - groundBox.body.y) < 2.5
         }
+        if (rightCanyonRoute === 'upper' && player.body.x > chapter.rightCanyon.rightWallFallMinX && player.body.y < chapter.rightCanyon.topRouteFallY) rightCanyonDroppedBelowTopRoute = true
         player.setPushing(boxPushed)
         key.update(dt)
       },
@@ -732,7 +740,7 @@ export class ChapterLoader {
           elevator: elevator.save(), elevatorLever: elevatorLever.save(), groundBox: groundBox.save(), groundDoorY: groundDoor.body.y,
           groundPlateRemaining: groundPlate.remaining, topPlateRemaining: topPlate.remaining, secondDoorY: secondDoor.body.y,
           secondGroundPlateRemaining: secondGroundPlate.remaining, secondTopPlateRemaining: secondTopPlate.remaining,
-          keyLever: keyLever.save(), keyLeverVisible, portalLever: portalLever.save(), portalEnabled, rightWallLever: rightWallLever.save(), routeRespawn, rightCanyonRoute, rightCanyonBlockNearby,
+          keyLever: keyLever.save(), keyLeverVisible, portalLever: portalLever.save(), portalEnabled, rightWallLever: rightWallLever.save(), routeRespawn, rightCanyonRoute, rightCanyonDroppedBelowTopRoute, rightCanyonBlockNearby, rightCanyonBlockJumpRoute,
         }
       },
       restore(snapshot) {
@@ -754,19 +762,25 @@ export class ChapterLoader {
         keyLever.setVisible(keyLeverVisible)
         routeRespawn = snapshot.routeRespawn || snapshot.fallRespawn || { ...chapter.spawn }
         rightCanyonRoute = snapshot.rightCanyonRoute || 'ground'
+        rightCanyonDroppedBelowTopRoute = snapshot.rightCanyonDroppedBelowTopRoute || false
         rightCanyonBlockNearby = snapshot.rightCanyonBlockNearby || false
+        rightCanyonBlockJumpRoute = snapshot.rightCanyonBlockJumpRoute || null
       },
       hits() { return false },
       recoverFall(target) {
         if (target.body.x > chapter.leftCanyon.minX && target.body.x < chapter.leftCanyon.maxX) return { resetChapter: true }
         if (target.body.x > chapter.rightCanyon.rightWallFallMinX && target.body.x <= chapter.rightCanyon.minX) {
+          const recovery = rightCanyonDroppedBelowTopRoute ? chapter.rightCanyon.topRouteDropRespawn : chapter.rightCanyon.portalLeverRespawn
           return {
-            position: { x: chapter.rightCanyon.portalLeverRespawn.x, y: chapter.rightCanyon.portalLeverRespawn.y },
-            blockPosition: chapter.rightCanyon.portalLeverRespawn.block,
+            position: { x: recovery.x, y: recovery.y },
+            blockPosition: recovery.block,
           }
         }
         if (target.body.x > chapter.rightCanyon.minX) {
-          const recovery = rightCanyonRoute === 'upper' ? chapter.rightCanyon.portalLeverRespawn : chapter.rightCanyon.keyLeverRespawn
+          const recovery = rightCanyonDroppedBelowTopRoute
+            && rightCanyonBlockJumpRoute !== 'ground'
+            ? chapter.rightCanyon.topRouteDropRespawn
+            : ((rightCanyonBlockJumpRoute || rightCanyonRoute) === 'upper' ? chapter.rightCanyon.portalLeverRespawn : chapter.rightCanyon.keyLeverRespawn)
           return {
             position: { x: recovery.x, y: recovery.y },
             blockPosition: recovery.block,

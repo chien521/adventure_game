@@ -65,8 +65,10 @@ export class Box {
       ))
       .sort((first, second) => (second.y + second.h / 2) - (first.y + first.h / 2))[0]
     const sideX = player.body.x + player.facing * .9
-    const support = supportBelow(sideX) || supportBelow(player.body.x)
-    this.body.x = supportBelow(sideX) ? sideX : player.body.x
+    const sideSupport = supportBelow(sideX)
+    const edgeDropForward = this.interactions.edgeDropForward && player.facing > 0 && !sideSupport && supportBelow(player.body.x)
+    const support = edgeDropForward ? null : (sideSupport || supportBelow(player.body.x))
+    this.body.x = edgeDropForward || sideSupport ? sideX : player.body.x
     this.body.y = player.body.y - player.body.hh + this.body.h / 2
     if (support && Math.abs((support.y + support.h / 2) - releaseBottom) < .08) {
       this.body.y = support.y + support.h / 2 + this.body.h / 2
