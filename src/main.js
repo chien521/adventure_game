@@ -29,7 +29,7 @@ triggerCard.querySelector('p').textContent = 'A numbered plate fires its remaini
 const actionExamples = document.createElement('section')
 actionExamples.className = 'guide-section guide-examples'
 actionExamples.setAttribute('aria-labelledby', 'examples-title')
-actionExamples.innerHTML = '<h2 id="examples-title">See It Work</h2><div class="guide-example-grid"><figure><img src="/guide-trigger.png" alt="A carried block resting on a green infinity trigger in Winter"><figcaption><span class="guide-mark">∞ TRIGGER</span><strong>Reusable plate</strong><p>Move the block away, then return it to trigger the route again.</p></figcaption></figure><figure><img src="/guide-lever.png" alt="A player next to the activated right wall lever in Winter"><figcaption><span class="guide-mark">LEVER</span><strong>Reveal a control</strong><p>Some levers expose another interaction instead of moving a door.</p></figcaption></figure></div></section>'
+actionExamples.innerHTML = `<h2 id="examples-title">See It Work</h2><div class="guide-example-grid"><figure><img src="${import.meta.env.BASE_URL}guide-trigger.png" alt="A carried block resting on a green infinity trigger in Winter"><figcaption><span class="guide-mark">∞ TRIGGER</span><strong>Reusable plate</strong><p>Move the block away, then return it to trigger the route again.</p></figcaption></figure><figure><img src="${import.meta.env.BASE_URL}guide-lever.png" alt="A player next to the activated right wall lever in Winter"><figcaption><span class="guide-mark">LEVER</span><strong>Reveal a control</strong><p>Some levers expose another interaction instead of moving a door.</p></figcaption></figure></div></section>`
 guide.querySelector('[aria-labelledby="mechanics-title"]').before(actionExamples)
 const guidePages = document.createElement('div')
 guidePages.className = 'guide-pages'
@@ -328,7 +328,7 @@ chapterSelect.innerHTML = '<button class="chapter-card chapter-spring" data-chap
 chapterSelect.querySelectorAll('.chapter-card').forEach((card) => {
   const thumbnail = document.createElement('img')
   thumbnail.className = 'chapter-thumbnail'
-  thumbnail.src = `/chapter-${card.dataset.chapter}.png`
+  thumbnail.src = `${import.meta.env.BASE_URL}chapter-${card.dataset.chapter}.png`
   thumbnail.alt = ''
   thumbnail.setAttribute('aria-hidden', 'true')
   card.prepend(thumbnail)
