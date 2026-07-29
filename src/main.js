@@ -15,11 +15,56 @@ import { winter } from './chapters/winter.js'
 const app = document.querySelector('#app')
 app.innerHTML = '<div id="start"><div id="start-content"><button id="start-button" type="button">enter</button><button id="guide-button" type="button">how to play</button><div id="chapter-select" aria-label="Select chapter"><button data-chapter="spring" type="button">spring</button><button data-chapter="summer" type="button">summer</button><button data-chapter="autumn" type="button">autumn</button><button data-chapter="winter" type="button">winter</button></div></div><section id="guide" aria-labelledby="guide-title" aria-hidden="true"><div id="guide-content"><p class="guide-kicker">UNDERTOW FIELD NOTES</p><h1 id="guide-title">Find a way through.</h1><div id="guide-grid"><article><kbd>A</kbd><kbd>D</kbd><h2>Move</h2><p>Run, jump, and use the terrain to find a route.</p></article><article><kbd>W</kbd><h2>Jump</h2><p>Standing on a carried block readies one extra jump.</p></article><article><kbd>E</kbd><h2>Act</h2><p>Carry blocks, pull levers, and place blocks on red triggers.</p></article><article><kbd>Q</kbd><h2>Return</h2><p>Use a lavender portal when you are close enough to it.</p></article><article><span class="guide-mark">KEY</span><h2>Collect</h2><p>Optional keys persist once you leave a chapter through its exit.</p></article><article><span class="guide-mark">CHECKPOINT</span><h2>Recover</h2><p>Passing a checkpoint changes where a fall sends you back.</p></article></div><button id="guide-back" type="button">back</button></div></section></div><div id="key-hud" aria-live="polite">keys <span id="key-hud-count">0</span></div><div id="death" aria-hidden="true"></div><div id="pause"><button data-pause="resume" type="button">resume</button><button data-pause="restart" type="button">restart chapter</button></div><div id="ending" aria-live="polite"><h1>UNDERTOW</h1><p id="ending-message">thank you for playing.</p><p id="key-count">0/4 keys</p></div><div id="touch-controls" aria-hidden="true"><div class="touch-half"><button data-input="left" aria-label="Move left">&#x2039;</button><button data-input="right" aria-label="Move right">&#x203a;</button></div><div class="touch-half"><button data-input="jump" aria-label="Jump">A</button><button data-input="action" aria-label="Action">B</button></div></div>'
 const locket = () => '<div class="locket" role="img" aria-label="0 of 4 memories recovered"><span data-key="spring"></span><span data-key="summer"></span><span data-key="autumn"></span><span data-key="winter"></span></div>'
-app.innerHTML = `<section id="prelude" aria-labelledby="prelude-title"><div id="prelude-content">${locket()}<p>He remembers nothing. Only that something is owed.</p><h1 id="prelude-title">What the Snow Remembers</h1><button id="prelude-continue" type="button">press to continue</button></div></section><div id="start"><div id="start-content"><button id="start-button" type="button">enter</button><button id="guide-button" type="button">how to play</button><div id="chapter-select" aria-label="Select chapter"><button data-chapter="spring" type="button">spring</button><button data-chapter="summer" type="button">summer</button><button data-chapter="autumn" type="button">autumn</button><button data-chapter="winter" type="button">winter</button></div></div><section id="guide" aria-labelledby="guide-title" aria-hidden="true"></section></div><div id="key-hud" aria-live="polite">${locket()}</div><div id="death" aria-hidden="true"></div><div id="pause"><button data-pause="resume" type="button">resume</button><button data-pause="restart" type="button">restart chapter</button></div><div id="ending" aria-live="polite">${locket()}<h1>What the Snow Remembers</h1><p id="ending-message"></p><p id="ending-message-detail"></p><p id="key-count">0/4 keys</p></div><div id="touch-controls" aria-hidden="true"><div class="touch-half"><button data-input="left" aria-label="Move left">&#x2039;</button><button data-input="right" aria-label="Move right">&#x203A;</button></div><div class="touch-half"><button data-input="jump" aria-label="Jump">&#x25B3;</button><button data-input="action" aria-label="Action">E</button><button data-input="portal" aria-label="Use portal">Q</button></div></div>`
+app.innerHTML = `<section id="prelude" aria-labelledby="prelude-title" role="button" tabindex="0"><div id="prelude-content">${locket()}<p>He remembers nothing. Only that something is owed.</p><h1 id="prelude-title">What the Snow Remembers</h1><span id="prelude-continue">click to continue</span></div></section><div id="start"><div id="start-content"><button id="start-button" type="button">enter</button><button id="guide-button" type="button">how to play</button><div id="chapter-select" aria-label="Select chapter"><button data-chapter="spring" type="button">spring</button><button data-chapter="summer" type="button">summer</button><button data-chapter="autumn" type="button">autumn</button><button data-chapter="winter" type="button">winter</button></div></div><section id="guide" aria-labelledby="guide-title" aria-hidden="true"></section></div><div id="key-hud" aria-live="polite">${locket()}</div><div id="death" aria-hidden="true"></div><div id="pause"><button data-pause="resume" type="button">resume</button><button data-pause="restart" type="button">restart chapter</button></div><div id="ending" aria-live="polite">${locket()}<h1>What the Snow Remembers</h1><p id="ending-message"></p><p id="ending-message-detail"></p><p id="key-count">0/4 keys</p></div><div id="touch-controls" aria-hidden="true"><div class="touch-half"><button data-input="left" aria-label="Move left">&#x2039;</button><button data-input="right" aria-label="Move right">&#x203A;</button></div><div class="touch-half"><button data-input="jump" aria-label="Jump">&#x25B3;</button><button data-input="action" aria-label="Action">E</button><button data-input="portal" aria-label="Use portal">Q</button></div></div>`
 const guide = document.querySelector('#guide')
 guide.remove()
 app.append(guide)
-guide.innerHTML = '<div id="guide-content"><p class="guide-kicker">WHAT THE SNOW REMEMBERS FIELD NOTES</p><h1 id="guide-title">Find a way through.</h1><section class="guide-section" aria-labelledby="commands-title"><h2 id="commands-title">Key Commands</h2><div class="guide-grid guide-commands"><article><kbd>A</kbd><kbd>D</kbd><span class="key-or">or</span><kbd>&larr;</kbd><kbd>&rarr;</kbd><h3>Move</h3></article><article><kbd>W</kbd><span class="key-or">or</span><kbd>space</kbd><h3>Jump</h3></article><article><kbd>E</kbd><h3>Action</h3><p>Carry blocks and pull levers.</p></article><article><kbd>Q</kbd><h3>Portal</h3></article><article><kbd>escape</kbd><h3>Pause</h3></article></div></section><section class="guide-section" aria-labelledby="objects-title"><h2 id="objects-title">World Objects</h2><div class="guide-grid guide-objects"><article><span class="guide-mark">BLOCK</span><h3>Carry</h3><p>Carry blocks, stand on one to double jump, or place them on red triggers.</p></article><article><span class="guide-mark">LEVER</span><h3>Change</h3><p>Pull levers to move doors, platforms, and routes.</p></article><article><span class="guide-mark">PORTAL</span><h3>Return</h3><p>Use lavender portals when you are close enough to them.</p></article><article><span class="guide-mark">KEY</span><h3>Collect</h3><p>Optional keys persist once you leave through a chapter exit.</p></article><article><span class="guide-mark">CHECKPOINT</span><h3>Recover</h3><p>Passing one changes where a fall sends you back.</p></article></div></section><button id="guide-back" type="button">back</button></div>'
+guide.innerHTML = '<div id="guide-content"><p class="guide-kicker">WHAT THE SNOW REMEMBERS FIELD NOTES</p><h1 id="guide-title">Find a way through.</h1><p class="guide-objective">Reach each chapter&apos;s exit portal. Collecting a memory key is optional, but changes what is remembered at the end.</p><section class="guide-section" aria-labelledby="commands-title"><h2 id="commands-title">Key Commands</h2><div class="guide-grid guide-commands"><article><kbd>A</kbd><kbd>D</kbd><span class="key-or">or</span><kbd>&larr;</kbd><kbd>&rarr;</kbd><h3>Move</h3></article><article><kbd>W</kbd><span class="key-or">or</span><kbd>space</kbd><h3>Jump</h3></article><article><kbd>E</kbd><h3>Action</h3><p>Carry blocks and pull levers.</p></article><article><kbd>Q</kbd><h3>Portal</h3></article><article><kbd>escape</kbd><h3>Pause</h3></article></div></section><section class="guide-section" aria-labelledby="mechanics-title"><h2 id="mechanics-title">Puzzle Rules</h2><div class="guide-grid guide-mechanics"><article><span class="guide-mark">BLOCK</span><h3>Lift And Launch</h3><p>Blocks activate floor triggers. Stand on one before jumping to gain one extra jump.</p></article><article><span class="guide-mark">TRIGGER</span><h3>Two Kinds</h3><p>Some triggers fire once; others show a counter. An infinity counter means you can move the block off and back on repeatedly.</p></article><article><span class="guide-mark">DOOR</span><h3>Route Control</h3><p>A trigger may open a door, create a platform, or move a blocker between upper and ground routes.</p></article><article><span class="guide-mark">LEVER</span><h3>Reveal Or Move</h3><p>Levers can reveal an item, portal, or another control. Some latch after one use; others can be toggled.</p></article></div></section><section class="guide-section" aria-labelledby="objects-title"><h2 id="objects-title">World Objects</h2><div class="guide-grid guide-objects"><article><span class="guide-mark">LIFT</span><h3>Platform</h3><p>Moving platforms carry both the player and a block resting on them.</p></article><article><span class="guide-mark">PORTAL</span><h3>Exit Or Return</h3><p>Use a visible lavender portal when close enough. Some must be revealed first.</p></article><article><span class="guide-mark">KEY</span><h3>Collect</h3><p>Keys persist once you leave through a chapter exit.</p></article><article><span class="guide-mark">CHECKPOINT</span><h3>Recover</h3><p>Falls return you to a safe recent route or chapter-specific recovery point.</p></article><article><span class="guide-mark">ROUTES</span><h3>Read The Space</h3><p>When one route is blocked, use the other to change the puzzle state.</p></article></div></section><button id="guide-back" type="button">back</button></div>'
+guide.removeAttribute('aria-labelledby')
+guide.setAttribute('aria-label', 'How to play')
+guide.querySelector('#guide-title')?.remove()
+const triggerCard = guide.querySelector('.guide-mechanics article:nth-child(2)')
+triggerCard.querySelector('h3').textContent = 'One-Shot And Infinity'
+triggerCard.querySelector('p').textContent = 'A numbered plate fires its remaining uses, then locks. An infinity plate can be reset by moving the block off and back on.'
+const actionExamples = document.createElement('section')
+actionExamples.className = 'guide-section guide-examples'
+actionExamples.setAttribute('aria-labelledby', 'examples-title')
+actionExamples.innerHTML = '<h2 id="examples-title">See It Work</h2><div class="guide-example-grid"><figure><img src="/guide-trigger.png" alt="A carried block resting on a green infinity trigger in Winter"><figcaption><span class="guide-mark">∞ TRIGGER</span><strong>Reusable plate</strong><p>Move the block away, then return it to trigger the route again.</p></figcaption></figure><figure><img src="/guide-lever.png" alt="A player next to the activated right wall lever in Winter"><figcaption><span class="guide-mark">LEVER</span><strong>Reveal a control</strong><p>Some levers expose another interaction instead of moving a door.</p></figcaption></figure></div></section>'
+guide.querySelector('[aria-labelledby="mechanics-title"]').before(actionExamples)
+const guidePages = document.createElement('div')
+guidePages.className = 'guide-pages'
+const guidePageOne = document.createElement('div')
+guidePageOne.className = 'guide-page visible'
+const guidePageTwo = document.createElement('div')
+guidePageTwo.className = 'guide-page'
+guidePageOne.append(
+  guide.querySelector('.guide-kicker'),
+  guide.querySelector('.guide-objective'),
+  guide.querySelector('[aria-labelledby="commands-title"]'),
+  actionExamples,
+)
+guidePageTwo.append(
+  guide.querySelector('[aria-labelledby="mechanics-title"]'),
+  guide.querySelector('[aria-labelledby="objects-title"]'),
+)
+guidePages.append(guidePageOne, guidePageTwo)
+const guidePageButton = guide.querySelector('#guide-back')
+guidePageButton.id = 'guide-page-button'
+guidePageButton.textContent = 'next'
+guide.querySelector('#guide-content').prepend(guidePages)
+const setGuidePage = (page) => {
+  const secondPage = page === 2
+  guidePageOne.classList.toggle('visible', !secondPage)
+  guidePageTwo.classList.toggle('visible', secondPage)
+  guidePageButton.textContent = secondPage ? 'back' : 'next'
+  guidePageButton.setAttribute('aria-label', secondPage ? 'Back to guide page one' : 'Next guide page')
+}
+guidePageButton.addEventListener('click', () => setGuidePage(guidePageTwo.classList.contains('visible') ? 1 : 2))
+  const guideChapterSelectButton = document.createElement('button')
+  guideChapterSelectButton.id = 'guide-chapter-select'
+  guideChapterSelectButton.type = 'button'
+  guideChapterSelectButton.textContent = 'return to chapter selection'
+  guidePageButton.after(guideChapterSelectButton)
 const pauseGuideButton = document.createElement('button')
 pauseGuideButton.type = 'button'
 pauseGuideButton.textContent = 'how to play'
@@ -56,7 +101,7 @@ let ending = false
 let endingElapsed = 0
 const fallDeathY = -8
 const autumnFallDeathY = -16
-const endingDuration = 20
+const endingDuration = 10
 const endingWalkSpeed = 3.2
 const endingFadeStart = endingDuration - 4
 checkpoint.activate()
@@ -90,6 +135,10 @@ function loadChapter(nextChapter, entryPosition = nextChapter.spawn, restoreStat
 function beginEnding() {
   ending = true
   endingElapsed = 0
+  document.querySelector('#ending-message').textContent = 'The snow remembers.'
+  document.querySelector('#ending-message-detail').textContent = ''
+  document.querySelector('#key-count').textContent = ''
+  document.querySelector('#ending').classList.add('visible', 'cinematic')
   audio.stopAmbience()
   audio.startHeartbeat()
   keyLight.intensity = .04
@@ -139,6 +188,7 @@ function restartChapter() {
 
 function finish() {
   finished = true
+  document.querySelector('#ending').classList.remove('cinematic')
   audio.stopHeartbeat()
   const keyCount = collectedKeys.size
   const endings = [
@@ -275,6 +325,14 @@ async function startGame(nextChapter = spring) {
 
 const chapterSelect = document.querySelector('#chapter-select')
 chapterSelect.innerHTML = '<button class="chapter-card chapter-spring" data-chapter="spring" type="button"><span class="chapter-number">01</span><span class="chapter-season">spring</span><span class="chapter-route">the floodline</span></button><button class="chapter-card chapter-summer" data-chapter="summer" type="button"><span class="chapter-number">02</span><span class="chapter-season">summer</span><span class="chapter-route">the outskirts</span></button><button class="chapter-card chapter-autumn" data-chapter="autumn" type="button"><span class="chapter-number">03</span><span class="chapter-season">autumn</span><span class="chapter-route">the works</span></button><button class="chapter-card chapter-winter" data-chapter="winter" type="button"><span class="chapter-number">04</span><span class="chapter-season">winter</span><span class="chapter-route">the core</span></button>'
+chapterSelect.querySelectorAll('.chapter-card').forEach((card) => {
+  const thumbnail = document.createElement('img')
+  thumbnail.className = 'chapter-thumbnail'
+  thumbnail.src = `/chapter-${card.dataset.chapter}.png`
+  thumbnail.alt = ''
+  thumbnail.setAttribute('aria-hidden', 'true')
+  card.prepend(thumbnail)
+})
 const chapterSelectionTitle = document.createElement('p')
 chapterSelectionTitle.id = 'chapter-selection-title'
 chapterSelectionTitle.textContent = 'choose a chapter'
@@ -292,20 +350,35 @@ const dismissPrelude = () => {
   prelude.classList.add('hidden')
   setTimeout(() => prelude.remove(), 700)
 }
-document.querySelector('#prelude-continue').addEventListener('click', dismissPrelude)
+document.querySelector('#prelude').addEventListener('click', dismissPrelude)
+document.querySelector('#prelude').addEventListener('keydown', (event) => {
+  if (event.code === 'Enter' || event.code === 'Space') {
+    event.preventDefault()
+    dismissPrelude()
+  }
+})
 addEventListener('keydown', (event) => {
   if (event.code !== 'Escape' && document.querySelector('#prelude')) dismissPrelude()
 }, { once: true })
 const setGuideVisible = (visible) => {
   guide.classList.toggle('visible', visible)
   guide.setAttribute('aria-hidden', String(!visible))
-  if (visible) document.querySelector('#guide-back').focus()
+  if (visible) {
+    setGuidePage(1)
+    guidePageButton.focus()
+  }
   else if (paused) pauseGuideButton.focus()
   else document.querySelector('#guide-button').focus()
 }
 document.querySelector('#guide-button').addEventListener('click', () => setGuideVisible(true))
-document.querySelector('#guide-back').addEventListener('click', () => setGuideVisible(false))
 pauseGuideButton.addEventListener('click', () => setGuideVisible(true))
+guideChapterSelectButton.addEventListener('click', () => {
+  setGuideVisible(false)
+  document.querySelector('#pause').classList.remove('visible')
+  document.querySelector('#start').classList.remove('hidden')
+  document.querySelector('#start').classList.add('chapter-selection')
+  chapterSelect.querySelector('button')?.focus()
+})
 const chapters = { spring, summer, autumn, winter }
 document.querySelectorAll('[data-chapter]').forEach((button) => {
   button.addEventListener('click', () => startGame(chapters[button.dataset.chapter]))
