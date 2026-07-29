@@ -1,20 +1,101 @@
-# Adventure Game
+# What the Snow Remembers
 
-A browser-based 3D puzzle/adventure game built with [Three.js](https://threejs.org/) and [Vite](https://vitejs.dev/).
+**[Play the game](https://chien521.github.io/adventure_game/)**
 
-## 🎮 Live Demo
+*What the Snow Remembers* is a browser-based 3D puzzle-platform adventure about crossing four changing landscapes and recovering fragments of a life that has been forgotten. Each season is a compact, hand-built challenge where blocks, triggers, doors, lifts, levers, and routes must be read as one connected machine.
 
-**[Play it here](https://chien521.github.io/adventure_game/)**
+The game is built with [Three.js](https://threejs.org/) and [Vite](https://vitejs.dev/). It runs entirely in the browser with no account, download, or backend required.
 
-## Development
+## At A Glance
+
+- Four playable chapters: spring, summer, autumn, and winter.
+- Optional memory keys that change the final ending text.
+- Physics-based block carrying, placement, falling, and lift support.
+- Route-switching puzzles with doors, levers, floor triggers, bridges, and moving platforms.
+- Checkpoint and route-aware recovery designed to return the player to a useful puzzle state.
+- A built-in two-page how-to-play guide with live gameplay examples.
+
+## Screenshots
+
+| Spring: the floodline | Summer: the outskirts |
+| --- | --- |
+| ![Spring chapter](public/chapter-spring.png) | ![Summer chapter](public/chapter-summer.png) |
+| Autumn: the works | Winter: the core |
+| ![Autumn chapter](public/chapter-autumn.png) | ![Winter chapter](public/chapter-winter.png) |
+
+## Story And Goal
+
+The traveler begins with only a feeling that something is owed. Moving through the four seasons leads toward a final exit, while hidden memory keys offer another way to understand what happened. Reaching each chapter's portal advances the journey; collecting keys is optional, but each recovered memory changes the final reflection.
+
+## How To Play
+
+| Input | Action |
+| --- | --- |
+| `A` / `D` or Left / Right Arrow | Move |
+| `W` or Space | Jump |
+| `E` | Carry or place a block; use a nearby lever |
+| `Q` | Use a nearby visible portal |
+| Escape | Pause |
+
+### Puzzle Vocabulary
+
+**Blocks** are the primary movable tools. Carry one with `E`, then press `E` again to release it onto a supported surface. A block can activate floor triggers, hold a route open, or provide a launch point: standing on a block before jumping grants one additional jump.
+
+**Numbered triggers** have limited uses. Once their remaining activations are spent, they lock. **Green infinity triggers** can be reused by moving the block off the plate and placing it back again.
+
+**Levers** can open a route, reveal a hidden interaction, activate a lift, or expose a portal. Some are one-shot controls; others can be toggled. **Doors** do not merely disappear: in several puzzles they physically move between ground and upper routes, so changing one route can block or open another.
+
+**Portals** are chapter exits and return points. A portal must be visible and approached before `Q` can activate it. **Checkpoints** and route-aware recovery keep failures short while preserving the puzzle's intended state.
+
+## Chapters
+
+### 01. Spring - The Floodline
+
+A green, flooded threshold where the basic language of the game is introduced: carry a block, use it on plates, open doors, and chain route changes across a canyon. The optional key is behind its own block-and-trigger problem.
+
+### 02. Summer - The Outskirts
+
+A bright industrial landscape built around stacked climbable structures, distant banks, and a bridge over a canyon. The chapter layers levers, doors, platforms, and a high hidden-key route that requires careful block use and jumping.
+
+### 03. Autumn - The Works
+
+An orange mechanical ascent with moving crushers, alternating footholds, a vertical key route, and a lift that reconnects distant levels. The chapter emphasizes timing, safe staging points, and choosing the correct return route.
+
+### 04. Winter - The Core
+
+A white, two-level puzzle centered on a manual elevator and two coupled routes. The block can travel on the lift, reusable infinity triggers move blockers between ground and upper paths, and separate levers reveal the key and exit portal. Winter also has deliberate recovery rules: a fall from the right wall returns to the top route, while right-void falls restore the player and block to the appropriate route beside the relevant lever.
+
+## Technical Notes
+
+The game uses vanilla ES modules with a small custom 2D gameplay layer rendered through Three.js:
+
+- `src/main.js` owns the game loop, chapter transitions, UI, pause flow, and ending.
+- `src/chapters/` holds data-driven positions and puzzle configuration for each season.
+- `src/world/ChapterLoader.js` builds each chapter's runtime mechanics.
+- `src/world/Interactables.js` contains blocks, levers, doors, and pressure plates.
+- `src/core/` contains input, camera, audio, checkpoints, physics, and game-loop utilities.
+- `public/` contains the chapter and guide screenshots used by the menu and documentation.
+
+## Run Locally
+
+Prerequisite: a current Node.js LTS installation.
 
 ```bash
 npm install
-npm run dev      # start dev server
-npm run build    # production build to dist/
-npm run preview  # preview the production build
+npm run dev
 ```
+
+Vite prints the local development URL, usually `http://127.0.0.1:5173/`.
+
+### Production Build
+
+```bash
+npm run build
+npm run preview
+```
+
+`npm run build` outputs the production site to `dist/`.
 
 ## Deployment
 
-Pushes to `main` are automatically built and deployed to GitHub Pages via [GitHub Actions](.github/workflows/deploy.yml).
+Pushes to `main` are automatically built and deployed to GitHub Pages through [the deployment workflow](.github/workflows/deploy.yml).
