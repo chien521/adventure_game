@@ -35,7 +35,7 @@ export const summer = {
     { x: -9, y: 3.85, w: 1.4, h: 1.1 },
     { x: -10.4, y: 4.95, w: 1.4, h: 1.1 },
   ],
-  backgrounds: [-38, -30, -22, -15, -7, 0, 8, 16, 24].map((x, index) => ({ x, h: 7 + (index % 3) * 3 })),
+  backgrounds: [],
   checkpoints: [{ x: -19, y: 2 }, { x: -5, y: 2 }, { x: 8.6, y: 2 }],
   boxInteractions: { carry: true, push: false },
   box: { x: 4.7, y: .5 },
