@@ -15,7 +15,7 @@ import { winter } from './chapters/winter.js'
 const app = document.querySelector('#app')
 app.innerHTML = '<div id="start"><div id="start-content"><button id="start-button" type="button">enter</button><button id="guide-button" type="button">how to play</button><div id="chapter-select" aria-label="Select chapter"><button data-chapter="spring" type="button">spring</button><button data-chapter="summer" type="button">summer</button><button data-chapter="autumn" type="button">autumn</button><button data-chapter="winter" type="button">winter</button></div></div><section id="guide" aria-labelledby="guide-title" aria-hidden="true"><div id="guide-content"><p class="guide-kicker">UNDERTOW FIELD NOTES</p><h1 id="guide-title">Find a way through.</h1><div id="guide-grid"><article><kbd>A</kbd><kbd>D</kbd><h2>Move</h2><p>Run, jump, and use the terrain to find a route.</p></article><article><kbd>W</kbd><h2>Jump</h2><p>Standing on a carried block readies one extra jump.</p></article><article><kbd>E</kbd><h2>Act</h2><p>Carry blocks, pull levers, and place blocks on red triggers.</p></article><article><kbd>Q</kbd><h2>Return</h2><p>Use a lavender portal when you are close enough to it.</p></article><article><span class="guide-mark">KEY</span><h2>Collect</h2><p>Optional keys persist once you leave a chapter through its exit.</p></article><article><span class="guide-mark">CHECKPOINT</span><h2>Recover</h2><p>Passing a checkpoint changes where a fall sends you back.</p></article></div><button id="guide-back" type="button">back</button></div></section></div><div id="key-hud" aria-live="polite">keys <span id="key-hud-count">0</span></div><div id="death" aria-hidden="true"></div><div id="pause"><button data-pause="resume" type="button">resume</button><button data-pause="restart" type="button">restart chapter</button></div><div id="ending" aria-live="polite"><h1>UNDERTOW</h1><p id="ending-message">thank you for playing.</p><p id="key-count">0/4 keys</p></div><div id="touch-controls" aria-hidden="true"><div class="touch-half"><button data-input="left" aria-label="Move left">&#x2039;</button><button data-input="right" aria-label="Move right">&#x203a;</button></div><div class="touch-half"><button data-input="jump" aria-label="Jump">A</button><button data-input="action" aria-label="Action">B</button></div></div>'
 const locket = () => '<div class="locket" role="img" aria-label="0 of 4 memories recovered"><span data-key="spring"></span><span data-key="summer"></span><span data-key="autumn"></span><span data-key="winter"></span></div>'
-app.innerHTML = `<section id="prelude" aria-labelledby="prelude-title" role="button" tabindex="0"><div id="prelude-content">${locket()}<p>He remembers nothing. Only that something is owed.</p><h1 id="prelude-title">What the Snow Remembers</h1><span id="prelude-continue">click to continue</span></div></section><div id="start"><div id="start-content"><button id="start-button" type="button">enter</button><button id="guide-button" type="button">how to play</button><div id="chapter-select" aria-label="Select chapter"><button data-chapter="spring" type="button">spring</button><button data-chapter="summer" type="button">summer</button><button data-chapter="autumn" type="button">autumn</button><button data-chapter="winter" type="button">winter</button></div></div><section id="guide" aria-labelledby="guide-title" aria-hidden="true"></section></div><div id="key-hud" aria-live="polite">${locket()}</div><div id="death" aria-hidden="true"></div><div id="pause"><button data-pause="resume" type="button">resume</button><button data-pause="restart" type="button">restart chapter</button></div><div id="ending" aria-live="polite">${locket()}<h1>What the Snow Remembers</h1><p id="ending-message"></p><p id="ending-message-detail"></p><p id="key-count">0/4 keys</p></div><div id="touch-controls" aria-hidden="true"><div class="touch-half"><button data-input="left" aria-label="Move left">&#x2039;</button><button data-input="right" aria-label="Move right">&#x203A;</button></div><div class="touch-half"><button data-input="jump" aria-label="Jump">&#x25B3;</button><button data-input="action" aria-label="Action">E</button><button data-input="portal" aria-label="Use portal">Q</button></div></div>`
+app.innerHTML = `<section id="prelude" aria-labelledby="prelude-title" role="button" tabindex="0"><div id="prelude-content">${locket()}<p>I remember nothing. Only that something is owed.</p><h1 id="prelude-title">What the Snow Remembers</h1><span id="prelude-continue">click to continue</span></div></section><div id="start"><div id="start-content"><button id="start-button" type="button">enter</button><button id="guide-button" type="button">how to play</button><div id="chapter-select" aria-label="Select chapter"><button data-chapter="spring" type="button">spring</button><button data-chapter="summer" type="button">summer</button><button data-chapter="autumn" type="button">autumn</button><button data-chapter="winter" type="button">winter</button></div></div><section id="guide" aria-labelledby="guide-title" aria-hidden="true"></section></div><div id="key-hud" aria-live="polite">${locket()}</div><div id="death" aria-hidden="true"></div><div id="pause"><button data-pause="resume" type="button">resume</button><button data-pause="restart" type="button">restart chapter</button></div><div id="ending" aria-live="polite">${locket()}<h1>What the Snow Remembers</h1><p id="ending-message"></p><p id="ending-message-detail"></p><p id="key-count">0/4 keys</p><button id="ending-return" type="button">return to chapter selection</button></div><div id="touch-controls" aria-hidden="true"><div class="touch-half"><button data-input="left" aria-label="Move left">&#x2039;</button><button data-input="right" aria-label="Move right">&#x203A;</button></div><div class="touch-half"><button data-input="jump" aria-label="Jump">&#x25B3;</button><button data-input="action" aria-label="Action">E</button><button data-input="portal" aria-label="Use portal">Q</button></div></div>`
 const guide = document.querySelector('#guide')
 guide.remove()
 app.append(guide)
@@ -101,9 +101,85 @@ let ending = false
 let endingElapsed = 0
 const fallDeathY = -8
 const autumnFallDeathY = -16
-const endingDuration = 10
-const endingWalkSpeed = 3.2
-const endingFadeStart = endingDuration - 4
+const endingDuration = 3
+const endingPassages = [
+  `I don't know this place.
+
+The snow doesn't care whether I know it or not. It falls the same over ground I couldn't name if my life depended on it — and maybe it does. Maybe it always did. I keep moving because stopping seems worse than not knowing why I'm moving.
+
+There was green, once. And then yellow, and orange, and now this — white, and quiet, and enormous. None of it felt like anything except more walking. I don't remember arriving anywhere. I don't remember leaving anywhere either. There's just this: one foot, then the other, snow filling in the shape of my steps almost as soon as I lift them.
+
+There should be a face I know. A door I'd recognize on sight, a name that would land in my chest like something coming home to roost. There isn't. There's only the shape of an absence where all of that should sit — and the shape doesn't tell me what's missing, only that something is.
+
+I keep asking myself the same three things, over and over, the way a man in a dark room keeps finding the same wall: Where am I. Am I going anywhere. What am I doing here.
+
+No answer comes. Maybe none was ever going to. Maybe the asking is the whole of it, and I'll go on asking, here, in the snow, for as long as there's a here to ask it in.
+
+I reached the end and remembered nothing.
+
+Somewhere, it began to snow again.`,
+  `I've lost my way. I know that much, at least — which is more than nothing, standing here where I'm fairly sure four roads used to meet, though I couldn't tell you now which one brought me in.
+
+Somewhere back there, I found a thing. Small. It fit easily in my hand, whatever it was, wherever I found it — I remember the finding of it more clearly than the thing itself. A weight. A little brightness where before there'd been none. Some part of me insisted it mattered, and that part hasn't steered me wrong about anything else today, so I trusted it, and I kept it, and I still don't know what it's for.
+
+But I know — the way you know weather is coming before the sky has said a word about it — that I'm meant for somewhere. Not this snow. Not this stopping-place with no name. Somewhere with a roof, and warmth, and maybe someone who stopped expecting me a long time ago and started, instead, merely hoping.
+
+One thing isn't enough to build a life back out of. It's not enough to tell you who I was, or who was waiting, or what I was walking toward before I forgot I was walking toward anything at all. But it's enough to know a life existed once — fully furnished, somewhere behind me — and that I only carried one small piece of it out through the door.
+
+I've lost my way.
+
+But I'm sure I'm meant for somewhere.`,
+  null,
+  `Three now. Three small weights, three small brightnesses, carried this far without my quite meaning to keep them — and when I lay them out in the snow, side by side, they very nearly make a shape I recognize.
+
+Spring: leaving somewhere small, being sent out into somewhere large, a hand letting go of mine at a doorway I can still see exactly, if I close my eyes. Summer: warmth, and being looked at, and a version of myself I liked better than most of the ones I've been since. Autumn: a stillness. A door. Someone on the other side of it who didn't come back through, and some part of me that understood, even then, not to follow.
+
+Three seasons. Almost a whole year, laid end to end. Almost a whole life, if I squint and let the gaps blur soft at the edges.
+
+But there's a fourth space here, unmistakably empty, sitting exactly where a fourth season ought to be — and no matter how long I stand over it, nothing rises up to fill it. Not a face. Not a color. Not even the shape of a grief I could name properly, the way I've apparently grieved the others. Just blank. Just missing, in a way none of the other three are.
+
+It's a strange thing, being this close to whole. Closer than I've been all day — closer, maybe, than I had any right to expect — and still short. Still one season away from being able to say, honestly, I remember my life.
+
+Almost enough to be a life.
+
+One season, still missing.`,
+  `Spring first — a hand letting go of mine, a doorway, the particular courage and cowardice of being sent out alone for the first time. I was small enough, then, that the whole world came up to my shoulders.
+
+Then summer. Warmth, and grass gone gold with light, and someone turning to look at me the way you look at something you've just decided, right then, to keep. I remember that look better than I remember my own face at that age.
+
+Then autumn — quieter. A door. A small weight set down gently, the way you set down something you already know you won't be picking back up. I didn't follow through that door. I understand now, finally, why I couldn't. Some part of you always knows a goodbye the moment it arrives, even while the rest of you keeps insisting on calling it something smaller.
+
+And winter. Winter is this — the snow, the walking, the long half-light between having had a life and being finished having had one. Winter is now.
+
+Four seasons. My whole life, laid end to end, and for the first time today none of it is missing. I can see all of it at once — the leaving, the loving, the losing, and this, the long walk after — not as four separate griefs I'd been carrying nameless, but as one thing. One life. Mine.
+
+There, ahead — the house. I know it now. I think I knew it the whole time, underneath the not-knowing; I only needed all four seasons back in my hands before I could let myself see it clearly.
+
+Spring, summer, autumn, winter — mine, all of it.
+
+I close my eyes.
+
+This time, on purpose.`,
+]
+const twoKeyEnding = (missingSeason) => `I remember someone.
+
+Not a name — names are the first thing this cold takes, and it never gives them back. But a shape. A warmth beside me that had weight, and breath, and a particular way of turning toward me before I'd even finished lifting my head to look. I remember being looked at like that. I remember it mattering more than almost anything since.
+
+It was — ${missingSeason}. It was ${missingSeason}, I think.
+
+No. That's not right. That's not where they were standing.
+
+I reach for the season the way you reach for a word sitting right at the edge of your tongue — certain of its shape, unable to make it land. Each time I try, I come back holding the wrong one. Not that season. Some other one. The one I can't quite—
+
+It doesn't matter, maybe. What matters is the shape stayed, even after the season didn't. What matters is that once, someone stood close enough beside me that I still remember, even now, stripped of nearly everything else, the exact angle of being loved.
+
+Two fragments. Not enough to rebuild a face, or a voice, or the sound of my own name in their mouth. But enough to know, with more certainty than I know almost anything standing here in the snow, that I was not always alone. That once there was an us, before there was only ever I.
+
+I remember someone. In the season of—
+
+no. That wasn't it. I can't recall which.
+
+Two fragments, and between them, the shape of someone I had loved.`
 checkpoint.activate()
 
 const keyLight = new THREE.DirectionalLight('#a9cbd5', 2.1)
@@ -135,9 +211,10 @@ function loadChapter(nextChapter, entryPosition = nextChapter.spawn, restoreStat
 function beginEnding() {
   ending = true
   endingElapsed = 0
-  document.querySelector('#ending-message').textContent = 'The snow remembers.'
+  document.querySelector('#ending-message').textContent = ''
   document.querySelector('#ending-message-detail').textContent = ''
   document.querySelector('#key-count').textContent = ''
+  document.querySelector('#ending').classList.remove('story-visible')
   document.querySelector('#ending').classList.add('visible', 'cinematic')
   audio.stopAmbience()
   audio.startHeartbeat()
@@ -188,21 +265,25 @@ function restartChapter() {
 
 function finish() {
   finished = true
-  document.querySelector('#ending').classList.remove('cinematic')
+  const endingElement = document.querySelector('#ending')
+  endingElement.classList.remove('cinematic')
   audio.stopHeartbeat()
   const keyCount = collectedKeys.size
-  const endings = [
-    ['He reached the end and remembered nothing.', 'Somewhere, it began to snow again.'],
-    ['One thing remained. He held onto it,', 'not knowing what it was for.'],
-    ['Two fragments, and between them,', 'the shape of someone he had loved.'],
-    ['Almost enough to be a life.', 'One season still missing.'],
-    ['Spring, summer, autumn, winter — his, all of it.', 'He closed his eyes. This time, on purpose.'],
-  ]
-  document.querySelector('#ending-message').textContent = endings[keyCount][0]
-  document.querySelector('#ending-message-detail').textContent = endings[keyCount][1]
+  const missingSeason = ['spring', 'summer', 'autumn', 'winter'].find((season) => !collectedKeys.has(season))
+  document.querySelector('#ending-message').textContent = keyCount === 2 ? twoKeyEnding(missingSeason) : endingPassages[keyCount]
+  document.querySelector('#ending-message-detail').textContent = ''
   document.querySelector('#key-count').textContent = `${keyCount}/4 keys`
   updateKeyHud()
-  document.querySelector('#ending').classList.add('visible')
+  endingElement.classList.add('visible')
+  requestAnimationFrame(() => endingElement.classList.add('story-visible'))
+}
+
+function returnToChapterSelection() {
+  ending = false
+  document.querySelector('#ending').classList.remove('visible', 'cinematic', 'story-visible')
+  document.querySelector('#start').classList.remove('hidden')
+  document.querySelector('#start').classList.add('chapter-selection')
+  chapterSelect.querySelector('button')?.focus()
 }
 
 function setPaused(value) { paused = value; document.querySelector('#pause').classList.toggle('visible', paused); if (!paused) renderer.domElement.focus() }
@@ -236,24 +317,6 @@ const game = new Game({
     input.update()
     if (ending) {
       endingElapsed += dt
-      // Walk toward the house and stop at its doorstep; stand there while the dawn fade completes.
-      // Offset must clear the close house's half-width (1.2) plus the player's half-width (.28)
-      // plus a visible gap, or the player model clips into the house mesh in the final shot.
-      const arrivalX = collectedKeys.size === 0
-        ? (chapterData.destinationX ?? Infinity) - 6
-        : (chapterData.destinationX ?? Infinity) - 1.8
-      player.body.x = Math.min(player.body.x + endingWalkSpeed * dt, arrivalX)
-      const walkSpeed = player.body.x < arrivalX ? endingWalkSpeed : 0
-      player.facing = 1
-      player.time += dt
-      player.rig.update(player.body.x, player.body.y, walkSpeed, 1, player.time, true)
-      if (endingElapsed > endingFadeStart) {
-        const t = Math.min(1, (endingElapsed - endingFadeStart) / (endingDuration - endingFadeStart))
-        scene.background.lerpColors(new THREE.Color('#000000'), new THREE.Color('#cfd8d6'), t)
-        scene.fog.color.copy(scene.background)
-        scene.fog.far = 9 + t * 30
-      }
-      camera.update(dt)
       if (endingElapsed >= endingDuration) finish()
       return
     }
@@ -314,6 +377,8 @@ const game = new Game({
   },
 })
 async function startGame(nextChapter = spring) {
+  finished = false
+  ending = false
   if (nextChapter !== chapterData) loadChapter(nextChapter)
   await audio.unlock()
   audio.startAmbience(chapterData.kind || 'outskirts')
@@ -343,6 +408,7 @@ chapterBackButton.textContent = 'back'
 chapterSelect.before(chapterSelectionTitle)
 chapterSelect.after(chapterBackButton)
 document.querySelector('#start-button').addEventListener('click', () => document.querySelector('#start').classList.add('chapter-selection'))
+document.querySelector('#ending-return').addEventListener('click', returnToChapterSelection)
 chapterBackButton.addEventListener('click', () => document.querySelector('#start').classList.remove('chapter-selection'))
 const dismissPrelude = () => {
   const prelude = document.querySelector('#prelude')

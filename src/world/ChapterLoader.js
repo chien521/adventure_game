@@ -769,15 +769,26 @@ export class ChapterLoader {
       hits() { return false },
       recoverFall(target) {
         if (target.body.x > chapter.leftCanyon.minX && target.body.x < chapter.leftCanyon.maxX) return { resetChapter: true }
+        const topRouteDropRecovery = rightCanyonDroppedBelowTopRoute && rightCanyonBlockNearby
+        const topRouteVoid = rightCanyonRoute === 'upper' && target.body.x > chapter.rightCanyon.topRouteRightEdge
+        if (topRouteVoid) {
+          const recovery = topRouteDropRecovery && rightCanyonBlockJumpRoute !== 'ground'
+            ? chapter.rightCanyon.topRouteDropRespawn
+            : chapter.rightCanyon.portalLeverRespawn
+          return {
+            position: { x: recovery.x, y: recovery.y },
+            blockPosition: recovery.block,
+          }
+        }
         if (target.body.x > chapter.rightCanyon.rightWallFallMinX && target.body.x <= chapter.rightCanyon.minX) {
-          const recovery = rightCanyonDroppedBelowTopRoute ? chapter.rightCanyon.topRouteDropRespawn : chapter.rightCanyon.portalLeverRespawn
+          const recovery = topRouteDropRecovery ? chapter.rightCanyon.topRouteDropRespawn : chapter.rightCanyon.portalLeverRespawn
           return {
             position: { x: recovery.x, y: recovery.y },
             blockPosition: recovery.block,
           }
         }
         if (target.body.x > chapter.rightCanyon.minX) {
-          const recovery = rightCanyonDroppedBelowTopRoute
+          const recovery = topRouteDropRecovery
             && rightCanyonBlockJumpRoute !== 'ground'
             ? chapter.rightCanyon.topRouteDropRespawn
             : ((rightCanyonBlockJumpRoute || rightCanyonRoute) === 'upper' ? chapter.rightCanyon.portalLeverRespawn : chapter.rightCanyon.keyLeverRespawn)
@@ -786,7 +797,8 @@ export class ChapterLoader {
             blockPosition: recovery.block,
           }
         }
-        return playerSpaceIsClear(routeRespawn) ? { ...routeRespawn } : { ...chapter.spawn }
+        const recovery = playerSpaceIsClear(routeRespawn) ? routeRespawn : chapter.spawn
+        return { ...recovery, x: Math.min(recovery.x, chapter.rightCanyon.maxRespawnX) }
       },
       applyFallRecovery(recovery) {
         if (!recovery?.blockPosition) return

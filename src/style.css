@@ -86,12 +86,19 @@ canvas { position: fixed; inset: 0; z-index: 0; }
 #pause button:hover, #pause button:focus-visible { color: #101820; background: #d8e8e8; outline: none; }
 #ending { position: fixed; inset: 0; z-index: 4; display: grid; align-content: center; justify-items: center; gap: .4rem; color: #e7eded; background: #11191a; opacity: 0; pointer-events: none; transition: opacity 2s ease; text-align: center; }
 #ending.visible { opacity: 1; }
-#ending.cinematic { align-content: end; padding-bottom: 3rem; background: transparent; }
-#ending.cinematic .locket, #ending.cinematic h1, #ending.cinematic #key-count { display: none; }
-#ending.cinematic #ending-message { color: #e7eded; font: italic 1rem/1.4 Georgia, serif; letter-spacing: .08rem; }
+#ending.cinematic { background: #000; }
+#ending.cinematic .locket, #ending.cinematic h1, #ending.cinematic #ending-message, #ending.cinematic #ending-message-detail, #ending.cinematic #key-count, #ending.cinematic #ending-return { display: none; }
+#ending.visible:not(.cinematic) { align-content: start; overflow-y: auto; padding: clamp(2rem, 7vh, 5rem) 1.5rem; pointer-events: auto; }
+#ending:not(.cinematic) > * { opacity: 0; transition: opacity 2s ease; }
+#ending.story-visible > * { opacity: 1; }
 #ending h1, #ending p { margin: 0; font-family: system-ui, sans-serif; font-weight: 500; letter-spacing: .12rem; }
 #ending h1 { font-size: 1.4rem; }
 #ending p { color: #abb7b8; font-size: .85rem; }
+#ending:not(.cinematic) #ending-message { width: min(42rem, 100%); color: #d8e8e8; font: 1rem/1.68 Georgia, serif; letter-spacing: 0; text-align: left; white-space: pre-line; }
+#ending:not(.cinematic) #ending-message-detail:empty { display: none; }
+#ending-return { display: none; margin: 1.5rem 0 1rem; min-height: 2.7rem; color: #d8e8e8; background: transparent; border: 1px solid #7e9ca4; padding: .55rem 1rem; font: 500 .8rem/1 system-ui, sans-serif; letter-spacing: .08rem; text-transform: uppercase; cursor: pointer; }
+#ending:not(.cinematic) #ending-return { display: block; }
+#ending-return:hover, #ending-return:focus-visible { color: #101820; background: #d8e8e8; outline: none; }
 #ending .locket { margin-bottom: 1rem; transform: scale(1.35); }
 #ending #key-count { margin-top: .75rem; color: #72878b; font-size: .68rem; text-transform: uppercase; }
 #start-button { color: #d8e8e8; min-height: 3.4rem; background: transparent; border: 1px solid #7e9ca4; padding: .8rem 3rem; font: 600 1.4rem/1 system-ui, sans-serif; letter-spacing: .18rem; text-transform: uppercase; cursor: pointer; }
