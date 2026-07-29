@@ -7,7 +7,6 @@ import { Camera } from './core/Camera.js'
 import { Audio } from './core/Audio.js'
 import { Checkpoint } from './core/Checkpoint.js'
 import { ChapterLoader } from './world/ChapterLoader.js'
-import { Flashback } from './world/Flashback.js'
 import { spring } from './chapters/spring.js'
 import { summer } from './chapters/summer.js'
 import { autumn } from './chapters/autumn.js'
@@ -45,8 +44,6 @@ const loader = new ChapterLoader(scene)
 const collectedKeys = new Set()
 const bankedKeys = new Set()
 const chapterStates = new Map()
-let flashback = null
-let flashbackActive = false
 let chapterData = spring
 let chapter = loader.load(chapterData, player, input, audio, camera, collectedKeys)
 camera.setZones(chapterData.zones || [])
@@ -75,9 +72,6 @@ lamp.position.set(9, 5, 1)
 scene.add(lamp)
 
 function loadChapter(nextChapter, entryPosition = nextChapter.spawn, restoreState = false) {
-  flashback?.dispose()
-  flashback = null
-  flashbackActive = false
   chapterData = nextChapter
   chapter = loader.load(chapterData, player, input, audio, camera, collectedKeys)
   camera.setZones(chapterData.zones || [])
@@ -124,8 +118,12 @@ function dieAtCheckpoint() {
   document.querySelector('#death').classList.add('visible')
   const carriedBox = player.carriedBox
   const fallRespawn = chapter.recoverFall?.(player) || chapter.recoverCanyonFall?.(player)
-  checkpoint.respawn(player, fallRespawn || checkpoint.position)
-  carriedBox?.placeNextTo(player)
+  if (fallRespawn?.resetChapter) loadChapter(chapterData)
+  else {
+    checkpoint.respawn(player, fallRespawn?.position || fallRespawn || checkpoint.position)
+    chapter.applyFallRecovery?.(fallRespawn)
+    if (!fallRespawn?.blockPosition) carriedBox?.placeNextTo(player)
+  }
   respawnGrace = .8
   setTimeout(() => document.querySelector('#death').classList.remove('visible'), 650)
 }
@@ -159,7 +157,7 @@ function finish() {
 
 function setPaused(value) { paused = value; document.querySelector('#pause').classList.toggle('visible', paused); if (!paused) renderer.domElement.focus() }
 addEventListener('keydown', (event) => {
-  if (event.code !== 'Escape' || finished || ending || flashbackActive) return
+  if (event.code !== 'Escape' || finished || ending) return
   event.preventDefault()
   if (guide.classList.contains('visible')) setGuideVisible(false)
   else setPaused(!paused)
@@ -209,15 +207,6 @@ const game = new Game({
       if (endingElapsed >= endingDuration) finish()
       return
     }
-    if (flashbackActive) {
-      input.clear()
-      if (flashback.update(dt, camera)) {
-        flashback.dispose()
-        flashback = null
-        flashbackActive = false
-      }
-      return
-    }
     if (portalPanActive) {
       input.clear()
       if (camera.update(dt)) portalPanActive = false
@@ -232,6 +221,7 @@ const game = new Game({
       else if (portalReveal === 'floatingRouteReverse') camera.showRouteTrigger(chapterData.returnTrigger.x, chapterData.returnTrigger.y)
       else if (portalReveal === 'springLever') camera.showPortal(chapterData.exitLever.x, chapterData.exitLever.y)
       else if (portalReveal === 'summerSideDoor') camera.showHorizontal(chapterData.sideDoor.x)
+      else if (portalReveal === 'winterKeyLever') camera.showPortal(chapterData.keyLever.x, chapterData.keyLever.y)
       else camera.showPortal(chapterData.exitX + .25, chapterData.exitY)
       camera.update(dt)
       return
@@ -241,10 +231,6 @@ const game = new Game({
     if (keyId) {
       collectedKeys.add(keyId)
       updateKeyHud()
-      flashback = new Flashback(scene, keyId)
-      flashbackActive = true
-      input.clear()
-      return
     }
     respawnGrace = Math.max(0, respawnGrace - dt)
     const activeFallDeathY = chapterData === autumn ? autumnFallDeathY : fallDeathY
@@ -333,7 +319,6 @@ if (import.meta.env.DEV) {
     input,
     get paused() { return paused },
     get portalPanActive() { return portalPanActive },
-    get flashbackActive() { return flashbackActive },
     get chapter() { return chapter },
     get chapterData() { return chapterData },
     get collectedKeys() { return collectedKeys },

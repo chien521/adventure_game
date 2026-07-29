@@ -32,7 +32,7 @@ export class Box {
     }
     if (this.carried) {
       if (input.actionPressed) {
-        this.placeNextTo(player)
+        this.placeNextTo(player, blockers)
         input.actionPressed = false
       } else {
         this.body.x = player.body.x
@@ -54,11 +54,25 @@ export class Box {
     return false
   }
 
-  placeNextTo(player) {
+  placeNextTo(player, blockers = []) {
     this.carried = false
     player.carriedBox = null
-    this.body.x = player.body.x + player.facing * .9
+    const releaseBottom = player.body.y - player.body.hh
+    const supportBelow = (x) => blockers
+      .filter((blocker) => (
+        Math.abs(x - blocker.x) < this.body.w / 2 + blocker.w / 2 - .05 &&
+        blocker.y + blocker.h / 2 <= releaseBottom + .01
+      ))
+      .sort((first, second) => (second.y + second.h / 2) - (first.y + first.h / 2))[0]
+    const sideX = player.body.x + player.facing * .9
+    const support = supportBelow(sideX) || supportBelow(player.body.x)
+    this.body.x = supportBelow(sideX) ? sideX : player.body.x
     this.body.y = player.body.y - player.body.hh + this.body.h / 2
+    if (support && Math.abs((support.y + support.h / 2) - releaseBottom) < .08) {
+      this.body.y = support.y + support.h / 2 + this.body.h / 2
+      this.falling = false
+      this.fallVelocity = 0
+    } else this.startFalling()
     this.lastPlaced = { x: this.body.x, y: this.body.y }
     this.sync()
   }
@@ -101,25 +115,27 @@ export class Box {
 }
 
 export class Lever {
-  constructor(scene, position, onToggle, audio = null, { requiresJumpAction = false, pullRange = { x: 1.2, y: 1.2 } } = {}) {
+  constructor(scene, position, onToggle, audio = null, { requiresJumpAction = false, pullRange = { x: 1.2, y: 1.2 }, oneShot = false } = {}) {
     this.position = position
     this.body = null
     this.on = false
+    this.visible = true
     this.onToggle = onToggle
     this.audio = audio
     this.requiresJumpAction = requiresJumpAction
     this.pullRange = pullRange
+    this.oneShot = oneShot
     this.mesh = createMesh({ w: .22, h: 1 }, '#86b8bd')
     this.mesh.position.set(position.x, position.y, .1)
     scene.add(this.mesh)
   }
 
   update(player, input, busy = false) {
-    if (busy) return
+    if (!this.visible || busy || (this.oneShot && this.on)) return
     const canPull = !this.requiresJumpAction || !player.body.grounded
     const withinPullRange = Math.abs(player.body.x - this.position.x) < this.pullRange.x && Math.abs(player.body.y - this.position.y) < this.pullRange.y
     if (input.actionPressed && canPull && withinPullRange) {
-      this.on = !this.on
+      this.on = this.oneShot || !this.on
       this.mesh.rotation.z = this.on ? -.8 : .8
       this.onToggle(this.on)
       this.audio?.leverClunk()
@@ -129,6 +145,7 @@ export class Lever {
     this.position = { x, y }
     this.mesh.position.set(x, y, .1)
   }
+  setVisible(visible) { this.visible = visible; this.mesh.visible = visible }
   save() { return this.on }
   collider() { return this.body }
   restore(value) { this.on = value; this.mesh.rotation.z = value ? -.8 : .8; this.onToggle(value) }
@@ -144,6 +161,7 @@ export class Door {
   }
 
   setOpen(open) { this.open = open; this.sync() }
+  setY(y) { this.body.y = y; this.sync() }
   collider() { return this.open ? null : this.body }
   save() { return this.open }
   restore(value) { this.open = value; this.sync() }
@@ -151,14 +169,15 @@ export class Door {
 }
 
 export class PressurePlate {
-  constructor(scene, position, onChange, uses = 1) {
+  constructor(scene, position, onChange, uses = 1, { color = '#FF5151' } = {}) {
     this.body = { x: position.x, y: position.y, w: 1.35, h: .12 }
     this.onChange = onChange
     this.remaining = uses
+    this.color = color
     this.enabled = true
     this.visible = true
     this.pressed = false
-    this.mesh = createMesh(this.body, '#FF5151')
+    this.mesh = createMesh(this.body, color)
     this.mesh.material.transparent = true
     this.mesh.material.opacity = .55
     this.counterCanvas = document.createElement('canvas')
@@ -181,14 +200,14 @@ export class PressurePlate {
     context.beginPath()
     context.arc(48, 48, 34, 0, Math.PI * 2)
     context.fill()
-    context.strokeStyle = '#FF5151'
+    context.strokeStyle = this.color
     context.lineWidth = 6
     context.stroke()
     context.fillStyle = '#FFFFFF'
     context.font = 'bold 52px monospace'
     context.textAlign = 'center'
     context.textBaseline = 'middle'
-    context.fillText(String(this.remaining), 48, 52)
+    context.fillText(this.remaining === Infinity ? '∞' : String(this.remaining), 48, 52)
     this.counterTexture.needsUpdate = true
   }
 

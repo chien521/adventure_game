@@ -55,7 +55,7 @@ export class ChapterLoader {
 
   createKey(chapter, collectedKeys) {
     const key = chapter.key
-    if (!key || collectedKeys.has(key.id)) return { update() {}, collect() { return null }, reset() {} }
+    if (!key || collectedKeys.has(key.id)) return { update() {}, collect() { return null }, reset() {}, setVisible() {} }
     const alcove = new THREE.Mesh(new THREE.BoxGeometry(1.1, 1.35, .2), new THREE.MeshStandardMaterial({ color: chapter.palette.structure, roughness: .95 }))
     alcove.position.set(key.x, key.y, -.35)
     const bulb = new THREE.Mesh(new THREE.SphereGeometry(.19, 10, 8), new THREE.MeshStandardMaterial({ color: '#ffe36a', emissive: '#f2b91f', emissiveIntensity: 2, roughness: .35 }))
@@ -85,6 +85,7 @@ export class ChapterLoader {
         return key.id
       },
       reveal() { if (!collected) { visible = true; setVisible(true) } },
+      setVisible(value) { if (!collected) { visible = value; setVisible(value) } },
       reset() { collected = false; visible = true; setVisible(true) },
     }
   }
@@ -569,87 +570,235 @@ export class ChapterLoader {
 
   loadCore(chapter, player, input, audio, collectedKeys) {
     const key = this.createKey(chapter, collectedKeys)
-    const signal = (object, color, intensity = 1.2) => {
-      const light = new THREE.PointLight(color, intensity, 3, 2)
-      light.position.set(0, 0, .8)
-      object.mesh.add(light)
-      return light
+    const elevatorMaterial = new THREE.MeshStandardMaterial({ color: '#314b56', emissive: '#63dce4', emissiveIntensity: .45, roughness: .7 })
+    const elevator = {
+      body: { x: chapter.elevator.x, y: chapter.elevator.lowerY, w: chapter.elevator.w, h: chapter.elevator.h },
+      mesh: new THREE.Mesh(new THREE.BoxGeometry(chapter.elevator.w, chapter.elevator.h, .9), elevatorMaterial),
+      targetY: chapter.elevator.lowerY,
+      armed: false,
+      moving: false,
+      request(targetY, startImmediately = false) {
+        this.targetY = targetY
+        this.armed = true
+        this.moving = startImmediately
+      },
+      update(dt, rider, block) {
+        const previousTop = this.body.y + this.body.h / 2
+        const carriesRider = Math.abs(rider.body.x - this.body.x) < this.body.w / 2 + rider.body.hw - .01 && Math.abs(rider.body.y - rider.body.hh - previousTop) < .12
+        const carriesBlock = !block.carried && !block.falling && Math.abs(block.body.x - this.body.x) < this.body.w / 2 + block.body.w / 2 - .01 && Math.abs(block.body.y - block.body.h / 2 - previousTop) < .12
+        if (!this.armed) return
+        const distance = this.targetY - this.body.y
+        if (!this.moving && !carriesRider) return
+        if (Math.abs(distance) < .01) {
+          this.body.y = this.targetY
+          this.moving = false
+          this.armed = false
+        }
+        else {
+          const movement = Math.sign(distance) * Math.min(Math.abs(distance), chapter.elevator.speed * dt)
+          this.body.y += movement
+          if (carriesRider) {
+            rider.body.y += movement
+            rider.body.vy = 0
+            rider.body.grounded = true
+          }
+          if (carriesBlock) {
+            block.body.y += movement
+            block.lastPlaced = { x: block.body.x, y: block.body.y }
+            block.sync()
+          }
+          this.moving = true
+        }
+        this.mesh.position.y = this.body.y
+      },
+      save() { return { y: this.body.y, targetY: this.targetY, armed: this.armed, moving: this.moving } },
+      restore(snapshot) { this.body.y = snapshot.y; this.targetY = snapshot.targetY; this.armed = snapshot.armed || false; this.moving = snapshot.moving || false; this.mesh.position.y = this.body.y },
     }
-    const markDoor = (door) => {
-      door.mesh.material.color.set('#314b56')
-      door.mesh.material.emissive.set('#63dce4')
-      door.mesh.material.emissiveIntensity = .45
-      signal(door, '#63dce4', 1.35)
-    }
-    const addBridge = (bridge, visible = false) => {
-      const material = new THREE.MeshStandardMaterial({ color: '#d9f4f4', emissive: '#63dce4', emissiveIntensity: .45, roughness: .7 })
-      const mesh = new THREE.Mesh(new THREE.BoxGeometry(bridge.w, bridge.h, .9), material)
-      mesh.position.set(bridge.x, bridge.y, 0)
-      mesh.castShadow = true
-      mesh.visible = visible
-      const light = new THREE.PointLight('#8cecf0', 0, 5, 2)
-      light.position.set(0, .5, .8)
-      mesh.add(light)
-      this.group.add(mesh)
-      return { mesh, light }
-    }
-    const coreBox = new Box(this.group, chapter.coreBox, { min: -16.5, max: chapter.finalPlate.x + .35 }, chapter.boxInteractions)
-    const gateDoor = new Door(this.group, chapter.gateDoor)
-    markDoor(gateDoor)
-    const gatePlate = new PressurePlate(this.group, chapter.gatePlate, (pressed) => { if (pressed) gateDoor.setOpen(true) })
-    signal(gatePlate, '#ff6978')
-    const signalBridge = addBridge(chapter.signalBridge)
-    let signalBridgeActive = false
-    const setSignalBridge = (active) => {
-      signalBridgeActive = active
-      signalBridge.mesh.visible = active
-      signalBridge.light.intensity = active ? 2.2 : 0
-    }
-    const signalPlate = new PressurePlate(this.group, chapter.signalPlate, (pressed) => { if (pressed) setSignalBridge(true) })
-    signal(signalPlate, '#8cecf0')
-    const finalDoor = new Door(this.group, chapter.finalDoor)
-    markDoor(finalDoor)
-    const finalBridge = addBridge(chapter.finalBridge)
+    elevator.mesh.position.set(elevator.body.x, elevator.body.y, 0)
+    elevator.mesh.castShadow = true
+    this.group.add(elevator.mesh)
+    const elevatorLight = new THREE.PointLight('#63dce4', 1.8, 4, 2)
+    elevatorLight.position.set(0, .45, .8)
+    elevator.mesh.add(elevatorLight)
+    const elevatorLever = new Lever(this.group, { x: elevator.body.x + chapter.elevatorLever.offsetX, y: elevator.body.y + chapter.elevatorLever.offsetY }, () => {
+      const targetY = Math.abs(elevator.body.y - chapter.elevator.upperY) < Math.abs(elevator.body.y - chapter.elevator.lowerY)
+        ? chapter.elevator.lowerY
+        : chapter.elevator.upperY
+      elevator.request(targetY, true)
+    }, audio)
+    ;[elevatorLever].forEach((lever) => {
+      lever.mesh.material.color.set('#dffcff')
+      lever.mesh.material.emissive.set('#63dce4')
+      lever.mesh.material.emissiveIntensity = .8
+    })
+    const groundBox = new Box(this.group, chapter.groundBox, { min: -16.5, max: 12.7 })
+    const groundDoor = new Door(this.group, chapter.groundDoor)
+    groundDoor.mesh.material.color.set('#314b56')
+    groundDoor.mesh.material.emissive.set('#63dce4')
+    groundDoor.mesh.material.emissiveIntensity = .45
+    const groundDoorLight = new THREE.PointLight('#63dce4', 1.35, 3, 2)
+    groundDoorLight.position.set(0, 0, .8)
+    groundDoor.mesh.add(groundDoorLight)
+    const groundPlate = new PressurePlate(this.group, chapter.groundPlate, (pressed) => {
+      if (pressed) groundDoor.setY(chapter.groundDoor.upperY)
+    }, Infinity, { color: '#65d978' })
+    const groundPlateLight = new THREE.PointLight('#65d978', 1.2, 3, 2)
+    groundPlateLight.position.set(0, 0, .8)
+    groundPlate.mesh.add(groundPlateLight)
+    const topPlate = new PressurePlate(this.group, chapter.topPlate, (pressed) => {
+      if (pressed) groundDoor.setY(chapter.groundDoor.y)
+    }, Infinity, { color: '#65d978' })
+    const topPlateLight = new THREE.PointLight('#65d978', 1.2, 3, 2)
+    topPlateLight.position.set(0, 0, .8)
+    topPlate.mesh.add(topPlateLight)
+    const secondDoor = new Door(this.group, chapter.secondDoor)
+    secondDoor.mesh.material.color.set('#314b56')
+    secondDoor.mesh.material.emissive.set('#63dce4')
+    secondDoor.mesh.material.emissiveIntensity = .45
+    const secondDoorLight = new THREE.PointLight('#63dce4', 1.35, 3, 2)
+    secondDoorLight.position.set(0, 0, .8)
+    secondDoor.mesh.add(secondDoorLight)
+    const secondGroundPlate = new PressurePlate(this.group, chapter.secondGroundPlate, (pressed) => {
+      if (pressed) secondDoor.setY(chapter.secondDoor.y)
+    }, Infinity, { color: '#65d978' })
+    const secondGroundPlateLight = new THREE.PointLight('#65d978', 1.2, 3, 2)
+    secondGroundPlateLight.position.set(0, 0, .8)
+    secondGroundPlate.mesh.add(secondGroundPlateLight)
+    const secondTopPlate = new PressurePlate(this.group, chapter.secondTopPlate, (pressed) => {
+      if (pressed) secondDoor.setY(chapter.secondDoor.lowerY)
+    }, Infinity, { color: '#65d978' })
+    const secondTopPlateLight = new THREE.PointLight('#65d978', 1.2, 3, 2)
+    secondTopPlateLight.position.set(0, 0, .8)
+    secondTopPlate.mesh.add(secondTopPlateLight)
     const beacon = new THREE.PointLight('#dffcff', 0, 7, 2)
     beacon.position.set(chapter.exitX - .7, 2.8, 1)
     this.group.add(beacon)
-    let finalRouteActive = false
-    const setFinalRoute = (active) => {
-      finalRouteActive = active
-      finalDoor.setOpen(active)
-      finalBridge.mesh.visible = active
-      finalBridge.light.intensity = active ? 3 : 0
-      this.exitPortal.visible = active
-      beacon.intensity = active ? 5 : 0
-    }
-    const finalPlate = new PressurePlate(this.group, chapter.finalPlate, (pressed) => { if (pressed) setFinalRoute(true) })
-    signal(finalPlate, '#ff6978')
+    let portalEnabled = false
+    let portalRevealPending = false
+    let keyLeverRevealPending = false
+    let restoring = false
+    const keyLever = new Lever(this.group, chapter.keyLever, (on) => key.setVisible(on), audio, { oneShot: true })
+    keyLever.setVisible(false)
+    let keyLeverVisible = false
+    const portalLever = new Lever(this.group, chapter.portalLever, (on) => {
+      portalEnabled = on
+      this.exitPortal.visible = on
+      beacon.intensity = on ? 5 : 0
+      if (on && !restoring) portalRevealPending = true
+    }, audio, { oneShot: true })
+    const rightWallLever = new Lever(this.group, chapter.rightWallLever, (on) => {
+      keyLeverVisible = on
+      keyLever.setVisible(on)
+      if (on && !restoring) keyLeverRevealPending = true
+    }, audio, { oneShot: true })
+    let routeRespawn = { ...chapter.spawn }
+    let blockRespawn = null
+    let rightCanyonRoute = 'ground'
+    let rightCanyonBlockNearby = false
+    const playerSpaceIsClear = (position) => [
+      ...chapter.colliders,
+      elevator.body,
+      groundDoor.collider(),
+      secondDoor.collider(),
+    ].filter(Boolean).every((collider) => (
+      Math.abs(position.x - collider.x) >= player.body.hw + collider.w / 2 - .001 ||
+      Math.abs(position.y - collider.y) >= player.body.hh + collider.h / 2 - .001
+    ))
     return {
       colliders: chapter.colliders,
       update(dt) {
-        const boxPushed = coreBox.update(dt, player, input, [...chapter.colliders, gateDoor.collider(), finalDoor.collider(), signalBridgeActive ? chapter.signalBridge : null, finalRouteActive ? chapter.finalBridge : null].filter(Boolean))
-        gatePlate.update(coreBox)
-        signalPlate.update(coreBox)
-        finalPlate.update(coreBox)
+        elevatorLever.setPosition(elevator.body.x + chapter.elevatorLever.offsetX, elevator.body.y + chapter.elevatorLever.offsetY)
+        const boxPushed = groundBox.update(dt, player, input, [...chapter.colliders, elevator.body, groundDoor.collider(), secondDoor.collider()].filter(Boolean))
+        elevatorLever.update(player, input)
+        keyLever.update(player, input)
+        portalLever.update(player, input)
+        rightWallLever.update(player, input)
+        elevator.update(dt, player, groundBox)
+        groundPlate.update(groundBox)
+        topPlate.update(groundBox)
+        secondGroundPlate.update(groundBox)
+        secondTopPlate.update(groundBox)
+        const standingOnBlock = !groundBox.carried && !groundBox.falling && Math.abs(player.body.x - groundBox.body.x) < groundBox.body.w / 2 + player.body.hw - .05 && Math.abs((player.body.y - player.body.hh) - (groundBox.body.y + groundBox.body.h / 2)) < .08
+        if (standingOnBlock || player.jumpLaunchBlock === groundBox) {
+          blockRespawn = { x: groundBox.body.x, y: groundBox.body.y + groundBox.body.h / 2 + player.body.hh }
+        } else if (player.body.grounded && playerSpaceIsClear(player.body)) routeRespawn = { x: player.body.x, y: player.body.y }
+        if (standingOnBlock || player.jumpLaunchBlock === groundBox || (player.body.grounded && player.body.y > .5)) {
+          rightCanyonRoute = player.body.y >= 5 ? 'upper' : 'ground'
+          rightCanyonBlockNearby = groundBox.carried || standingOnBlock || Math.hypot(player.body.x - groundBox.body.x, player.body.y - groundBox.body.y) < 2.5
+        }
         player.setPushing(boxPushed)
         key.update(dt)
       },
-      dynamicColliders() { return [coreBox.collider(), gateDoor.collider(), finalDoor.collider(), signalBridgeActive ? chapter.signalBridge : null, finalRouteActive ? chapter.finalBridge : null].filter(Boolean) },
-      save() { return { coreBox: coreBox.save(), gateDoor: gateDoor.save(), gatePlateRemaining: gatePlate.remaining, signalBridgeActive, signalPlateRemaining: signalPlate.remaining, finalDoor: finalDoor.save(), finalPlateRemaining: finalPlate.remaining, finalRouteActive } },
+      dynamicColliders() { return [elevator.body, groundBox.collider(), groundDoor.collider(), secondDoor.collider()].filter(Boolean) },
+      save() {
+        return {
+          elevator: elevator.save(), elevatorLever: elevatorLever.save(), groundBox: groundBox.save(), groundDoorY: groundDoor.body.y,
+          groundPlateRemaining: groundPlate.remaining, topPlateRemaining: topPlate.remaining, secondDoorY: secondDoor.body.y,
+          secondGroundPlateRemaining: secondGroundPlate.remaining, secondTopPlateRemaining: secondTopPlate.remaining,
+          keyLever: keyLever.save(), keyLeverVisible, portalLever: portalLever.save(), portalEnabled, rightWallLever: rightWallLever.save(), routeRespawn, blockRespawn, rightCanyonRoute, rightCanyonBlockNearby,
+        }
+      },
       restore(snapshot) {
-        coreBox.restore(snapshot.coreBox)
-        gateDoor.restore(snapshot.gateDoor)
-        gatePlate.setRemaining(snapshot.gatePlateRemaining ?? (snapshot.gateDoor ? 0 : 1))
-        setSignalBridge(snapshot.signalBridgeActive || false)
-        signalPlate.setRemaining(snapshot.signalPlateRemaining ?? (snapshot.signalBridgeActive ? 0 : 1))
-        finalDoor.restore(snapshot.finalDoor ?? snapshot.finalRouteActive ?? false)
-        setFinalRoute(snapshot.finalRouteActive || false)
-        finalPlate.setRemaining(snapshot.finalPlateRemaining ?? (snapshot.finalRouteActive ? 0 : 1))
+        elevator.restore(snapshot.elevator || elevator.save())
+        elevatorLever.restore(snapshot.elevatorLever ?? false)
+        groundBox.restore(snapshot.groundBox || groundBox.save())
+        groundDoor.setY(snapshot.groundDoorY ?? chapter.groundDoor.y)
+        groundPlate.setRemaining(snapshot.groundPlateRemaining ?? Infinity)
+        topPlate.setRemaining(snapshot.topPlateRemaining ?? Infinity)
+        secondDoor.setY(snapshot.secondDoorY ?? chapter.secondDoor.y)
+        secondGroundPlate.setRemaining(snapshot.secondGroundPlateRemaining ?? Infinity)
+        secondTopPlate.setRemaining(snapshot.secondTopPlateRemaining ?? Infinity)
+        restoring = true
+        portalLever.restore(snapshot.portalLever ?? snapshot.portalEnabled ?? false)
+        rightWallLever.restore(snapshot.rightWallLever ?? snapshot.keyLeverVisible ?? false)
+        keyLever.restore(snapshot.keyLever ?? false)
+        restoring = false
+        keyLeverVisible = snapshot.keyLeverVisible ?? Boolean(snapshot.rightWallLever)
+        keyLever.setVisible(keyLeverVisible)
+        routeRespawn = snapshot.routeRespawn || snapshot.fallRespawn || { ...chapter.spawn }
+        blockRespawn = snapshot.blockRespawn || null
+        rightCanyonRoute = snapshot.rightCanyonRoute || 'ground'
+        rightCanyonBlockNearby = snapshot.rightCanyonBlockNearby || false
       },
       hits() { return false },
+      recoverFall(target) {
+        if (target.body.x > chapter.leftCanyon.minX && target.body.x < chapter.leftCanyon.maxX) return { resetChapter: true }
+        if (target.body.x > chapter.rightCanyon.minX) {
+          const recovery = rightCanyonRoute === 'upper' ? chapter.rightCanyon.upperRespawn : chapter.rightCanyon.groundRespawn
+          return {
+            position: { x: recovery.x, y: recovery.y },
+            blockPosition: rightCanyonBlockNearby ? recovery.block : null,
+          }
+        }
+        const playerTopOfBlock = { x: groundBox.body.x, y: groundBox.body.y + groundBox.body.h / 2 + player.body.hh }
+        const supportsBlock = [
+          ...chapter.colliders,
+          elevator.body,
+          groundDoor.collider(),
+          secondDoor.collider(),
+        ].filter(Boolean).some((collider) => (
+          Math.abs(groundBox.body.x - collider.x) < groundBox.body.w / 2 + collider.w / 2 - .05 &&
+          Math.abs((groundBox.body.y - groundBox.body.h / 2) - (collider.y + collider.h / 2)) < .08
+        ))
+        if (blockRespawn && !groundBox.carried && !groundBox.falling && supportsBlock && playerSpaceIsClear(playerTopOfBlock)) return playerTopOfBlock
+        return playerSpaceIsClear(routeRespawn) ? { ...routeRespawn } : { ...chapter.spawn }
+      },
+      applyFallRecovery(recovery) {
+        if (!recovery?.blockPosition) return
+        groundBox.restore({ ...recovery.blockPosition, falling: false, fallVelocity: 0 })
+      },
+      consumePortalReveal() {
+        if (keyLeverRevealPending) {
+          keyLeverRevealPending = false
+          return 'winterKeyLever'
+        }
+        const revealed = portalRevealPending
+        portalRevealPending = false
+        return revealed
+      },
       resetKey() { key.reset() },
       collectKey(target) { return key.collect(target) },
-      reachedExit(target) { return finalRouteActive && target.body.x > chapter.exitX },
+      reachedExit(target) { return portalEnabled && target.body.x > chapter.exitX },
     }
   }
 }
