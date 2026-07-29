@@ -141,6 +141,7 @@ export class Lever {
       this.mesh.rotation.z = this.on ? -.8 : .8
       this.onToggle(this.on)
       this.audio?.leverClunk()
+      input.actionPressed = false
     }
   }
   setPosition(x, y) {
@@ -226,9 +227,11 @@ export class PressurePlate {
     this.drawCounter()
   }
 
-  update(box) {
+  update(boxes) {
     if (!this.visible || !this.enabled) return
-    const pressed = Math.abs(box.body.x - this.body.x) < .85 && Math.abs(box.body.y - (this.body.y + .56)) < .3
+    const pressed = boxes
+      .filter((box) => box && !box.carried && !box.falling)
+      .some((box) => Math.abs(box.body.x - this.body.x) < .85 && Math.abs(box.body.y - (this.body.y + .56)) < .3)
     if (pressed === this.pressed) return
     this.pressed = pressed
     this.mesh.material.opacity = pressed ? .9 : .55

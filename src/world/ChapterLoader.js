@@ -212,10 +212,11 @@ export class ChapterLoader {
         const shadePushed = shadeBox?.update(dt, player, input, [...chapter.colliders, shadeDoor?.collider()].filter(Boolean)) || false
         player.setPushing(pushed || postKeyPushed || farBankPushed || shadePushed)
         pushed || postKeyPushed || farBankPushed || shadePushed ? audio.startScrape() : audio.stopScrape()
-        plate?.update(box)
-        sidePlate?.update(box)
-        if (portalPlateVisible) portalPlate?.update(box)
-        shadePlate?.update(shadeBox)
+        const movableBoxes = [box, postKeyBox, farBankBox, shadeBox].filter(Boolean)
+        plate?.update(movableBoxes)
+        sidePlate?.update(movableBoxes)
+        if (portalPlateVisible) portalPlate?.update(movableBoxes)
+        shadePlate?.update(movableBoxes)
         const blockers = [box.collider(), shadeBox?.collider()].filter(Boolean)
         searchlight?.update(dt, player, blockers)
         shadeLight?.update(dt, player, blockers)
@@ -360,12 +361,12 @@ export class ChapterLoader {
         topLever.update(player, input, topBox.playerEngaged(player, input))
         keyLever.update(player, input)
         if (returnTriggerVisible) {
-          returnTrigger.update(topBox)
+          returnTrigger.update([topBox])
           const blockOnReturnTrigger = Math.abs(topBox.body.x - returnTrigger.body.x) < .85 && Math.abs(topBox.body.y - (returnTrigger.body.y + .6)) < .8
           if (blockOnReturnTrigger) activatePortal()
         }
         if (keyTriggerVisible) {
-          keyTrigger.update(topBox)
+          keyTrigger.update([topBox])
           const blockOnKeyTrigger = Math.abs(topBox.body.x - keyTrigger.body.x) < .85 && Math.abs(topBox.body.y - (keyTrigger.body.y + .6)) < .8
           if (blockOnKeyTrigger) spawnElevator()
         }
@@ -514,9 +515,10 @@ export class ChapterLoader {
         if (skyStageVisible && leverVisible) exitLever.update(player, input, busy)
         player.setPushing(pushed || farPushed)
         pushed || farPushed ? audio.startScrape() : audio.stopScrape()
-        keyPlate.update(keyBox)
-        routePlate.update(keyBox)
-        relayPlate.update(keyBox)
+        const movableBoxes = [keyBox, farBox]
+        keyPlate.update(movableBoxes)
+        routePlate.update(movableBoxes)
+        relayPlate.update(movableBoxes)
         updateRoutePlateAvailability()
         key.update(dt)
         ambient.update(dt, camera.camera.position.x)
@@ -715,10 +717,11 @@ export class ChapterLoader {
         portalLever.update(player, input)
         rightWallLever.update(player, input)
         elevator.update(dt, player, groundBox)
-        groundPlate.update(groundBox)
-        topPlate.update(groundBox)
-        secondGroundPlate.update(groundBox)
-        secondTopPlate.update(groundBox)
+        const movableBoxes = [groundBox]
+        groundPlate.update(movableBoxes)
+        topPlate.update(movableBoxes)
+        secondGroundPlate.update(movableBoxes)
+        secondTopPlate.update(movableBoxes)
         const standingOnBlock = !groundBox.carried && !groundBox.falling && Math.abs(player.body.x - groundBox.body.x) < groundBox.body.w / 2 + player.body.hw - .05 && Math.abs((player.body.y - player.body.hh) - (groundBox.body.y + groundBox.body.h / 2)) < .08
         if (!standingOnBlock && player.jumpLaunchBlock !== groundBox && player.body.grounded && playerSpaceIsClear(player.body)) routeRespawn = { x: player.body.x, y: player.body.y }
         if (player.jumpLaunchBlock === groundBox) rightCanyonBlockJumpRoute = groundBox.body.y >= 5 ? 'upper' : 'ground'
