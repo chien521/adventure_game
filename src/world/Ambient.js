@@ -1,4 +1,13 @@
 import * as THREE from 'three'
+import { createModelSlot } from '../core/AssetLoader.js'
+
+// Natural bounding sizes (world units) of the replacement glTF models, measured once from their
+// accessor bounds — used below to scale each model to match this game's previous primitive dimensions.
+const NATURAL = {
+  house: { w: 1.3, h: .834, d: 1.028 },
+  tree: { h: 1.708 },
+  bush: { h: .244 },
+}
 
 // Depth layers behind the play plane (z=0), each drifting at a fraction of camera speed for parallax.
 const LAYERS = [
@@ -27,17 +36,17 @@ function buildParallaxLayers(scene, chapter, buildStructure) {
 }
 
 function addHouseMotif(parallax, chapter, close = false, scene = null) {
-  const house = new THREE.Group()
   const x = close ? chapter.destinationX : chapter.exitX - 1.5
-  const material = new THREE.MeshStandardMaterial({ color: close ? '#536063' : '#26342c', roughness: 1 })
-  const body = new THREE.Mesh(new THREE.BoxGeometry(close ? 2.4 : 1.1, close ? 2 : .9, close ? .8 : .3), material)
-  body.position.y = close ? 1 : .45
-  const roof = new THREE.Mesh(new THREE.ConeGeometry(close ? 1.8 : .85, close ? 1.2 : .58, 3), material)
-  roof.rotation.y = Math.PI / 6
-  roof.position.y = close ? 2.6 : 1.18
-  const window = new THREE.Mesh(new THREE.BoxGeometry(close ? .4 : .16, close ? .5 : .2, .05), new THREE.MeshBasicMaterial({ color: '#f7dfa2' }))
-  window.position.set(0, close ? 1.1 : .48, close ? .43 : .18)
-  house.add(body, roof, window)
+  const targetHeight = close ? 3.2 : 1.5
+  // Fallback keeps the old box-and-roof silhouette (minus the separate roof/window pieces, folded
+  // into one box) so a missing/broken model still reads as "a house" at roughly the right size.
+  const fallback = new THREE.Mesh(new THREE.BoxGeometry(close ? 2.4 : 1.1, targetHeight, close ? .8 : .3), new THREE.MeshStandardMaterial({ color: close ? '#536063' : '#26342c', roughness: 1 }))
+  fallback.position.y = targetHeight / 2
+  const house = createModelSlot(fallback, '/models/suburban/house.glb', {
+    tintColor: chapter.palette.structure,
+    scale: targetHeight / NATURAL.house.h,
+    anchor: 'ground',
+  })
   house.position.set(x, 0, 0)
   // The close house is the journey's destination: world-anchored in the chapter group so the
   // ending walk actually arrives at it (a parallax layer would keep sliding it ahead of the camera).
@@ -46,11 +55,18 @@ function addHouseMotif(parallax, chapter, close = false, scene = null) {
 }
 
 export function buildOutskirtsAmbient(scene, chapter) {
-  const structureMaterial = new THREE.MeshStandardMaterial({ color: chapter.palette.structure, roughness: 1 })
+  // Every third background slot uses a bush instead of a tree, for a bit of silhouette variety.
+  let structureIndex = 0
   const parallax = buildParallaxLayers(scene, chapter, (group, structure) => {
-    const mesh = new THREE.Mesh(new THREE.BoxGeometry(2.1, structure.h, .6), structureMaterial)
-    mesh.position.set(structure.x, structure.h / 2 - .5, 0)
-    group.add(mesh)
+    const useBush = structureIndex % 3 === 2
+    structureIndex += 1
+    const modelPath = useBush ? '/models/nature/bush.glb' : (chapter.season === 'summer' ? '/models/nature/tree.glb' : '/models/nature/tree-fall.glb')
+    const naturalHeight = useBush ? NATURAL.bush.h : NATURAL.tree.h
+    const fallback = new THREE.Mesh(new THREE.BoxGeometry(2.1, structure.h, .6), new THREE.MeshStandardMaterial({ color: chapter.palette.structure, roughness: 1 }))
+    fallback.position.y = structure.h / 2
+    const prop = createModelSlot(fallback, modelPath, { tintColor: chapter.palette.accent, scale: structure.h / naturalHeight, anchor: 'ground' })
+    prop.position.set(structure.x, -.5, 0)
+    group.add(prop)
   })
   addHouseMotif(parallax, chapter)
 
@@ -80,6 +96,10 @@ export function buildOutskirtsAmbient(scene, chapter) {
 }
 
 export function buildWorksAmbient(scene, chapter) {
+  // Left as primitives on purpose: these represent distant factory stacks/pipes for the industrial
+  // "works" chapter, and the nature-kit trees/bushes used elsewhere for background silhouettes would
+  // read as visually wrong here rather than just stylistically different. No suitable industrial
+  // silhouette exists in the fetched packs, so this stays a primitive rather than forcing a poor match.
   const material = new THREE.MeshStandardMaterial({ color: chapter.palette.structure, roughness: .95 })
   const pipeMaterial = new THREE.MeshStandardMaterial({ color: '#7a492c', roughness: .8 })
   const parallax = buildParallaxLayers(scene, chapter, (group, structure) => {

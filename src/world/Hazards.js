@@ -1,6 +1,14 @@
 import * as THREE from 'three'
 import { overlaps } from '../core/Physics2D.js'
+import { createModelSlot } from '../core/AssetLoader.js'
 
+// Natural bounding size (world units) of the replacement glTF model, measured once from its
+// accessor bounds — used below to scale the model to match this game's previous primitive dimensions.
+const NATURAL = { spikeBlock: { w: .9, h: .9 } }
+
+// Left as a plain translucent volume on purpose: this is a trigger-zone indicator (an invisible/
+// semi-transparent hazard boundary), not a physical prop, so no model in the fetched packs is a
+// better fit than a simple tinted box.
 export class KillVolume {
   constructor(scene, bounds, { visible = true } = {}) {
     this.bounds = { ...bounds }
@@ -66,8 +74,11 @@ export class Crusher {
     this.time = 0
     this.height = this.positionAt(0)
     this.body = { x, y: this.height, w, h: 1.1 }
-    this.mesh = new THREE.Mesh(new THREE.BoxGeometry(w, 1.1, .9), new THREE.MeshStandardMaterial({ color, roughness: .85 }))
-    this.mesh.castShadow = true
+    const fallback = new THREE.Mesh(new THREE.BoxGeometry(w, 1.1, .9), new THREE.MeshStandardMaterial({ color, roughness: .85 }))
+    this.mesh = createModelSlot(fallback, '/models/platformer/spike-block.glb', {
+      tintColor: color,
+      scale: { x: w / NATURAL.spikeBlock.w, y: 1.1 / NATURAL.spikeBlock.h, z: w / NATURAL.spikeBlock.w },
+    })
     scene.add(this.mesh)
     this.sync()
   }

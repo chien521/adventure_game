@@ -1,12 +1,17 @@
 import * as THREE from 'three'
 import { overlaps } from '../core/Physics2D.js'
+import { createModelSlot } from '../core/AssetLoader.js'
 
-const createMesh = (size, color) => {
-  const mesh = new THREE.Mesh(new THREE.BoxGeometry(size.w, size.h, .8), new THREE.MeshStandardMaterial({ color, roughness: .9 }))
-  mesh.castShadow = true
-  mesh.receiveShadow = true
-  return mesh
+// Natural bounding sizes (world units) of the replacement glTF models, measured once from their
+// accessor bounds — used below to scale each model to match this game's existing primitive dimensions.
+const NATURAL = {
+  crate: { w: .5, h: .5 },
+  lever: { w: .6, h: .542 },
+  door: { w: .724, h: 1 },
+  plate: { w: .6, h: .2 },
 }
+
+const createFallbackMesh = (size, color) => new THREE.Mesh(new THREE.BoxGeometry(size.w, size.h, .8), new THREE.MeshStandardMaterial({ color, roughness: .9 }))
 
 export class Box {
   constructor(scene, position, bounds = { min: -12.8, max: 12.8 }, interactions = { carry: true, push: false }) {
@@ -18,7 +23,10 @@ export class Box {
     this.fallVelocity = 0
     this.carried = false
     this.lastPlaced = { x: this.body.x, y: this.body.y }
-    this.mesh = createMesh(this.body, '#4DFFFF')
+    this.mesh = createModelSlot(createFallbackMesh(this.body, '#4DFFFF'), '/models/platformer/crate.glb', {
+      tintColor: '#4DFFFF',
+      scale: this.body.h / NATURAL.crate.h,
+    })
     scene.add(this.mesh)
     this.sync()
   }
@@ -127,7 +135,10 @@ export class Lever {
     this.requiresJumpAction = requiresJumpAction
     this.pullRange = pullRange
     this.oneShot = oneShot
-    this.mesh = createMesh({ w: .22, h: 1 }, '#86b8bd')
+    this.mesh = createModelSlot(createFallbackMesh({ w: .22, h: 1 }, '#86b8bd'), '/models/platformer/lever.glb', {
+      tintColor: '#86b8bd',
+      scale: 1 / NATURAL.lever.h,
+    })
     this.mesh.position.set(position.x, position.y, .1)
     scene.add(this.mesh)
   }
@@ -157,7 +168,11 @@ export class Lever {
 export class Door {
   constructor(scene, position) {
     this.body = { x: position.x, y: position.y, w: .7, h: position.h || 3.4 }
-    this.mesh = createMesh(this.body, '#30424a')
+    const widthScale = this.body.w / NATURAL.door.w
+    this.mesh = createModelSlot(createFallbackMesh(this.body, '#30424a'), '/models/platformer/door.glb', {
+      tintColor: '#30424a',
+      scale: { x: widthScale, y: this.body.h / NATURAL.door.h, z: widthScale },
+    })
     scene.add(this.mesh)
     this.open = false
     this.sync()
@@ -180,7 +195,11 @@ export class PressurePlate {
     this.enabled = true
     this.visible = true
     this.pressed = false
-    this.mesh = createMesh(this.body, color)
+    const widthScale = this.body.w / NATURAL.plate.w
+    this.mesh = createModelSlot(createFallbackMesh(this.body, color), '/models/platformer/plate.glb', {
+      tintColor: color,
+      scale: { x: widthScale, y: this.body.h / NATURAL.plate.h, z: widthScale },
+    })
     this.mesh.material.transparent = true
     this.mesh.material.opacity = .55
     this.counterCanvas = document.createElement('canvas')
