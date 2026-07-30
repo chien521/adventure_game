@@ -481,7 +481,7 @@ export class ChapterLoader {
       }
     })
     const updateRoutePlateAvailability = () => {
-      if (routePlateActivations !== 1 || routePlateRearmed || keyPlate.remaining || relayPlate.remaining) return
+      if (routePlateActivations !== 1 || routePlateRearmed || relayPlate.remaining) return
       routePlateRearmed = true
       routePlate.setRemaining(1)
     }
@@ -622,7 +622,9 @@ export class ChapterLoader {
     const elevatorLight = new THREE.PointLight('#63dce4', 1.8, 4, 2)
     elevatorLight.position.set(0, .45, .8)
     elevator.mesh.add(elevatorLight)
+    let restoring = false
     const elevatorLever = new Lever(this.group, { x: elevator.body.x + chapter.elevatorLever.offsetX, y: elevator.body.y + chapter.elevatorLever.offsetY }, () => {
+      if (restoring) return
       const targetY = Math.abs(elevator.body.y - chapter.elevator.upperY) < Math.abs(elevator.body.y - chapter.elevator.lowerY)
         ? chapter.elevator.lowerY
         : chapter.elevator.upperY
@@ -678,7 +680,6 @@ export class ChapterLoader {
     let portalEnabled = false
     let portalRevealPending = false
     let keyLeverRevealPending = false
-    let restoring = false
     const keyLever = new Lever(this.group, chapter.keyLever, (on) => key.setVisible(on), audio, { oneShot: true })
     keyLever.setVisible(false)
     let keyLeverVisible = false
@@ -747,6 +748,7 @@ export class ChapterLoader {
         }
       },
       restore(snapshot) {
+        restoring = true
         elevator.restore(snapshot.elevator || elevator.save())
         elevatorLever.restore(snapshot.elevatorLever ?? false)
         groundBox.restore(snapshot.groundBox || groundBox.save())
@@ -756,7 +758,6 @@ export class ChapterLoader {
         secondDoor.setY(snapshot.secondDoorY ?? chapter.secondDoor.y)
         secondGroundPlate.setRemaining(snapshot.secondGroundPlateRemaining ?? Infinity)
         secondTopPlate.setRemaining(snapshot.secondTopPlateRemaining ?? Infinity)
-        restoring = true
         portalLever.restore(snapshot.portalLever ?? snapshot.portalEnabled ?? false)
         rightWallLever.restore(snapshot.rightWallLever ?? snapshot.keyLeverVisible ?? false)
         keyLever.restore(snapshot.keyLever ?? false)

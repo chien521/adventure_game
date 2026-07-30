@@ -9,7 +9,7 @@ export class Input {
     this.previousPortal = false
     this.portalPressed = false
     this.wDown = false
-    const map = { KeyA: 'left', ArrowLeft: 'left', KeyD: 'right', ArrowRight: 'right', Space: 'jump', KeyW: 'jump', ArrowUp: 'jump', KeyE: 'action', KeyQ: 'portal' }
+    const map = { KeyA: 'left', ArrowLeft: 'left', KeyD: 'right', ArrowRight: 'right', Space: 'jump', KeyW: 'jump', ArrowUp: 'jump', KeyC: 'action', KeyQ: 'portal' }
     window.addEventListener('keydown', (event) => { if (map[event.code]) { this.keys.add(map[event.code]); if (event.code === 'KeyW') this.wDown = true; event.preventDefault(); canvas.focus() } })
     window.addEventListener('keyup', (event) => { if (map[event.code]) { this.keys.delete(map[event.code]); if (event.code === 'KeyW') this.wDown = false } })
     window.addEventListener('blur', () => { this.keys.clear(); this.wDown = false })

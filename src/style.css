@@ -19,10 +19,10 @@ canvas { position: fixed; inset: 0; z-index: 0; }
 #start-content { display: grid; justify-items: center; gap: 1.6rem; }
 #start.chapter-selection #start-content { width: min(68rem, calc(100vw - 3rem)); gap: 1.15rem; }
 #start.chapter-selection #start-button, #start.chapter-selection #guide-button { display: none; }
-#start:not(.chapter-selection) #chapter-select, #start:not(.chapter-selection) #chapter-selection-title, #start:not(.chapter-selection) #chapter-back { display: none; }
+#start:not(.chapter-selection) #chapter-select, #start:not(.chapter-selection) #chapter-selection-title, #start:not(.chapter-selection) #chapter-back, #start:not(.chapter-selection) #chapter-restart { display: none; }
 #guide-button, #guide-page-button, #guide-chapter-select { color: #aebfc0; min-height: 2.8rem; background: transparent; border: 1px solid #4f6870; padding: .7rem 1.25rem; font: 600 .9rem/1 system-ui, sans-serif; letter-spacing: .08rem; text-transform: uppercase; white-space: nowrap; cursor: pointer; }
-#chapter-back, #guide-button, #guide-page-button, #guide-chapter-select { color: #aebfc0; min-height: 2.8rem; background: transparent; border: 1px solid #4f6870; padding: .7rem 1.25rem; font: 600 .9rem/1 system-ui, sans-serif; letter-spacing: .08rem; text-transform: uppercase; white-space: nowrap; cursor: pointer; }
-#chapter-back:hover, #chapter-back:focus-visible, #guide-button:hover, #guide-button:focus-visible, #guide-page-button:hover, #guide-page-button:focus-visible, #guide-chapter-select:hover, #guide-chapter-select:focus-visible { color: #101820; background: #d8e8e8; outline: none; }
+#chapter-back, #chapter-restart, #guide-button, #guide-page-button, #guide-chapter-select { color: #aebfc0; min-height: 2.8rem; background: transparent; border: 1px solid #4f6870; padding: .7rem 1.25rem; font: 600 .9rem/1 system-ui, sans-serif; letter-spacing: .08rem; text-transform: uppercase; white-space: nowrap; cursor: pointer; }
+#chapter-back:hover, #chapter-back:focus-visible, #chapter-restart:hover, #chapter-restart:focus-visible, #guide-button:hover, #guide-button:focus-visible, #guide-page-button:hover, #guide-page-button:focus-visible, #guide-chapter-select:hover, #guide-chapter-select:focus-visible { color: #101820; background: #d8e8e8; outline: none; }
 #chapter-selection-title { margin: 0; color: #86b8bd; font: 600 .68rem/1 system-ui, sans-serif; letter-spacing: .16rem; text-transform: uppercase; }
 #chapter-select { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: .75rem; width: 100%; }
 #chapter-select .chapter-card { --card: #86b8bd; position: relative; display: flex; min-height: min(55vh, 28rem); flex-direction: column; align-items: flex-start; justify-content: flex-end; overflow: hidden; color: #e7f1f0; background: #152832; border: 1px solid color-mix(in srgb, var(--card), #101820 38%); padding: 1.15rem; text-align: left; cursor: pointer; transition: transform .25s ease, background .25s ease, border-color .25s ease; }
@@ -99,8 +99,30 @@ canvas { position: fixed; inset: 0; z-index: 0; }
 #ending-return { display: none; margin: 1.5rem 0 1rem; min-height: 2.7rem; color: #d8e8e8; background: transparent; border: 1px solid #7e9ca4; padding: .55rem 1rem; font: 500 .8rem/1 system-ui, sans-serif; letter-spacing: .08rem; text-transform: uppercase; cursor: pointer; }
 #ending:not(.cinematic) #ending-return { display: block; }
 #ending-return:hover, #ending-return:focus-visible { color: #101820; background: #d8e8e8; outline: none; }
+#ending-restart { display: none; margin: 0 0 1rem; min-height: 2.7rem; color: #aebfc0; background: transparent; border: 1px solid #4f6870; padding: .55rem 1rem; font: 500 .8rem/1 system-ui, sans-serif; letter-spacing: .08rem; text-transform: uppercase; cursor: pointer; }
+#ending:not(.cinematic) #ending-restart { display: block; }
+#ending.intro #ending-restart { display: block; margin: 1rem 0; opacity: 0; pointer-events: none; transition: opacity .5s ease; }
+#ending.intro.intro-ready #ending-restart { opacity: 1; pointer-events: auto; }
+#ending-restart:hover, #ending-restart:focus-visible { color: #101820; background: #d8e8e8; outline: none; }
 #ending .locket { margin-bottom: 1rem; transform: scale(1.35); }
 #ending #key-count { margin-top: .75rem; color: #72878b; font-size: .68rem; text-transform: uppercase; }
+#ending.intro { z-index: 8; align-content: start; overflow-y: auto; box-sizing: border-box; padding: clamp(2rem, 7vh, 5rem) 1.5rem; background: #000; opacity: 1; pointer-events: auto; transition: none; }
+#ending.intro .locket, #ending.intro h1, #ending.intro #key-count, #ending.intro #ending-return { display: none; }
+#ending.intro #ending-message { width: min(42rem, 100%); color: #d8e8e8; font: 1rem/1.68 Georgia, serif; letter-spacing: 0; text-align: left; white-space: pre-line; }
+#spring-intro-start { display: none; width: 12.5rem; margin: 1.5rem 0 0; min-height: 2.7rem; color: #d8e8e8; background: transparent; border: 1px solid #7e9ca4; padding: .55rem 1rem; font: 500 .8rem/1 system-ui, sans-serif; letter-spacing: .08rem; text-transform: uppercase; cursor: pointer; opacity: 0; pointer-events: none; transition: opacity .5s ease; }
+#ending.intro #spring-intro-start { display: block; }
+#ending.intro.intro-ready #spring-intro-start { opacity: 1; pointer-events: auto; }
+#ending.intro #spring-intro-start, #ending.intro #ending-restart { width: 12.5rem; min-height: 2.7rem; color: #d8e8e8; background: transparent; border: 1px solid #7e9ca4; padding: .55rem 1rem; font: 500 .8rem/1 system-ui, sans-serif; letter-spacing: .08rem; text-transform: uppercase; transition: opacity .5s ease; }
+#spring-intro-start:hover, #spring-intro-start:focus-visible { color: #101820; background: #d8e8e8; outline: none; }
+#restart-dialog { position: fixed; z-index: 10; inset: 0; display: none; place-items: center; padding: 1.5rem; background: #0009; }
+#restart-dialog.visible { display: grid; }
+#restart-dialog-panel { position: relative; box-sizing: border-box; width: min(26rem, 100%); padding: 2.5rem 1.5rem 1.5rem; color: #d8e8e8; background: #152832; border: 1px solid #7e9ca4; box-shadow: 0 .8rem 2.5rem #000a; }
+#restart-dialog-message { margin: 0; font: 1rem/1.55 Georgia, serif; }
+#restart-dialog-close { position: absolute; top: .55rem; right: .55rem; width: 2rem; height: 2rem; color: #aebfc0; background: transparent; border: 0; font: 1.5rem/1 system-ui, sans-serif; cursor: pointer; }
+#restart-dialog-close:hover, #restart-dialog-close:focus-visible { color: #d8e8e8; outline: 1px solid #7e9ca4; }
+#restart-dialog-actions { display: flex; justify-content: flex-end; gap: .6rem; margin-top: 1.5rem; }
+#restart-dialog-actions button { min-width: 4.5rem; min-height: 2.5rem; color: #d8e8e8; background: transparent; border: 1px solid #7e9ca4; font: 600 .75rem/1 system-ui, sans-serif; letter-spacing: .08rem; text-transform: uppercase; cursor: pointer; }
+#restart-dialog-actions button:hover, #restart-dialog-actions button:focus-visible { color: #101820; background: #d8e8e8; outline: none; }
 #start-button { color: #d8e8e8; min-height: 3.4rem; background: transparent; border: 1px solid #7e9ca4; padding: .8rem 3rem; font: 600 1.4rem/1 system-ui, sans-serif; letter-spacing: .18rem; text-transform: uppercase; cursor: pointer; }
 #start-button:hover, #start-button:focus-visible { background: #d8e8e8; color: #101820; outline: none; }
 #touch-controls { display: none; position: fixed; z-index: 3; inset: auto 0 1rem; justify-content: space-between; padding: 0 1rem; pointer-events: none; }

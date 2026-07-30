@@ -29,7 +29,7 @@ export class PlayerRig {
     this.legs[0].rotation.z = swing
     this.legs[1].rotation.z = -swing
     this.head.position.y = 1.15 + idle
-    this.body.rotation.z = -speed * .045 - (pushing ? .1 : 0)
-    this.head.rotation.z = !grounded && Math.abs(verticalSpeed) < 1.4 ? -facing * .14 : 0
+    this.body.rotation.z = -Math.abs(speed) * .045 - (pushing ? .1 : 0)
+    this.head.rotation.z = !grounded && Math.abs(verticalSpeed) < 1.4 ? -.14 : 0
   }
 }
