@@ -7,20 +7,21 @@ const parseCache = new Map()
 // Parses (and caches) the glTF at `path` once; resolves to the parsed scene, or null if the file is
 // missing/broken so callers can fall back to their primitive geometry instead of crashing.
 function parseModel(path) {
-  if (!parseCache.has(path)) {
-    parseCache.set(path, new Promise((resolve) => {
+  const modelPath = path.startsWith('/') ? `${import.meta.env.BASE_URL}${path.slice(1)}` : path
+  if (!parseCache.has(modelPath)) {
+    parseCache.set(modelPath, new Promise((resolve) => {
       gltfLoader.load(
-        path,
+        modelPath,
         (gltf) => resolve(gltf.scene),
         undefined,
         (error) => {
-          console.warn(`[AssetLoader] failed to load model "${path}" — falling back to primitive geometry.`, error)
+          console.warn(`[AssetLoader] failed to load model "${modelPath}" — falling back to primitive geometry.`, error)
           resolve(null)
         },
       )
     }))
   }
-  return parseCache.get(path)
+  return parseCache.get(modelPath)
 }
 
 // Returns a fresh clone of the model at `path` (safe to transform independently per instance),

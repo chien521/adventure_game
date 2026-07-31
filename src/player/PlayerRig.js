@@ -2,7 +2,7 @@ import * as THREE from 'three'
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js'
 import { VRMLoaderPlugin, VRMUtils } from '@pixiv/three-vrm'
 
-const WANDERER_MODEL_URL = '/models/player/wanderer.glb'
+const WANDERER_MODEL_URL = `${import.meta.env.BASE_URL}models/player/wanderer.glb`
 
 export class PlayerRig {
   constructor() {
