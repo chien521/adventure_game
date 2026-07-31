@@ -73,12 +73,15 @@ function collectMaterials(object) {
 // this codebase (`color.set`, `emissive.set`, `emissiveIntensity`, `opacity`, `transparent`) so
 // existing call sites that reach into `thing.mesh.material` keep working unmodified whether the
 // fallback or the (possibly multi-material) loaded model is currently showing.
-export function createModelSlot(fallback, path, { tintColor, scale = 1, anchor = 'center' } = {}) {
+export function createModelSlot(fallback, path, { tintColor, scale = 1, anchor = 'center', onLoad } = {}) {
   const group = new THREE.Group()
-  fallback.castShadow = true
-  fallback.receiveShadow = true
+  fallback.traverse((child) => {
+    if (!child.isMesh) return
+    child.castShadow = true
+    child.receiveShadow = true
+  })
   group.add(fallback)
-  let materials = [fallback.material]
+  let materials = collectMaterials(fallback)
   // Tracks values set through the shim after construction (state changes like a pressure plate's
   // opacity, or Winter's one-off color/emissive overrides) so they can be replayed onto whichever
   // model swap happens to occur after them, since the swap replaces `materials` wholesale.
@@ -116,9 +119,13 @@ export function createModelSlot(fallback, path, { tintColor, scale = 1, anchor =
       if (state.opacity !== undefined) materials.forEach((m) => { m.opacity = state.opacity })
       if (state.transparent !== undefined) materials.forEach((m) => { m.transparent = state.transparent })
       group.remove(fallback)
-      fallback.geometry.dispose()
-      fallback.material.dispose()
+      fallback.traverse((child) => {
+        if (!child.isMesh) return
+        child.geometry.dispose()
+        child.material.dispose()
+      })
       group.add(model)
+      onLoad?.(model)
     })
   }
   return group

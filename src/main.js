@@ -27,6 +27,13 @@ actionCommand.innerHTML = '<kbd>C</kbd><h3>Action</h3><p>Carry blocks and pull l
 document.querySelector('#touch-controls [data-input="action"]').textContent = 'C'
 guide.setAttribute('aria-label', 'How to play')
 guide.querySelector('#guide-title')?.remove()
+const viverseAvatarSlot = document.createElement('div')
+viverseAvatarSlot.id = 'viverse-avatar-slot'
+const viverseAvatarStatus = document.createElement('p')
+viverseAvatarStatus.id = 'viverse-avatar-status'
+viverseAvatarStatus.setAttribute('aria-live', 'polite')
+viverseAvatarSlot.append(viverseAvatarStatus)
+document.querySelector('#guide-button').before(viverseAvatarSlot)
 const triggerCard = guide.querySelector('.guide-mechanics article:nth-child(2)')
 triggerCard.querySelector('h3').textContent = 'One-Shot And Infinity'
 triggerCard.querySelector('p').textContent = 'A numbered plate fires its remaining uses, then locks. An infinity plate can be reset by moving the block off and back on.'
@@ -146,6 +153,58 @@ renderer.domElement.addEventListener('mousedown', () => renderer.domElement.focu
 const input = new Input(renderer.domElement, document.querySelector('#touch-controls'))
 const audio = new Audio()
 const player = new Player(scene, input, audio, spring.spawn)
+let avatarPickerOpen = false
+const setViverseAvatarStatus = (message = '') => { viverseAvatarStatus.textContent = message }
+addEventListener('viverse-me:open', () => {
+  avatarPickerOpen = true
+  input.clear()
+})
+addEventListener('viverse-me:close', () => {
+  avatarPickerOpen = false
+  input.clear()
+  renderer.domElement.focus()
+})
+addEventListener('viverse-me:authorization-denied', () => {
+  setViverseAvatarStatus('VIVERSE Avatar needs this website origin added to your SDK settings.')
+})
+const resolveViverseAvatarUrl = (url) => {
+  const avatarUrl = new URL(url)
+  if (avatarUrl.hostname === 'me-stage.viverse.com' && avatarUrl.pathname.endsWith('/default-avatar')) {
+    avatarUrl.searchParams.set('origin', location.origin)
+  }
+  return avatarUrl.href
+}
+const avatarLoadUrl = (url) => {
+  const resolvedUrl = resolveViverseAvatarUrl(url)
+  return import.meta.env.DEV ? `/viverse-avatar?url=${encodeURIComponent(resolvedUrl)}` : resolvedUrl
+}
+addEventListener('viverse-me:avatar-selected', async (event) => {
+  const avatar = event.detail?.avatar
+  if (!avatar?.vrmUrl) {
+    setViverseAvatarStatus('The selected avatar could not be loaded. The default traveler remains active.')
+    return
+  }
+  avatarPickerOpen = false
+  setViverseAvatarStatus('Loading your VIVERSE avatar...')
+  try {
+    await player.rig.setAvatar(avatarLoadUrl(avatar.vrmUrl))
+    setViverseAvatarStatus('VIVERSE avatar selected.')
+  } catch (error) {
+    console.warn('Failed to load selected VIVERSE avatar.', error)
+    setViverseAvatarStatus('VIVERSE blocked the selected avatar download. The default traveler remains active.')
+  }
+})
+const viverseAvatarScript = document.createElement('script')
+viverseAvatarScript.src = 'https://me-stage.viverse.com/sdk.js'
+viverseAvatarScript.async = true
+viverseAvatarScript.dataset.ac3Mode = 'sdk-happy-path'
+viverseAvatarScript.dataset.ac3Target = '#viverse-avatar-slot'
+viverseAvatarScript.dataset.ac3PartnerId = 'partner_44906eba1fd10dcd'
+viverseAvatarScript.dataset.ac3Label = 'connect VIVERSE avatar'
+viverseAvatarScript.dataset.ac3ButtonClass = 'viverse-avatar-button'
+viverseAvatarScript.dataset.ac3HpShowLibraryButton = 'true'
+viverseAvatarScript.addEventListener('error', () => setViverseAvatarStatus('VIVERSE Avatar is unavailable right now.'))
+document.head.append(viverseAvatarScript)
 const camera = new Camera(player)
 const loader = new ChapterLoader(scene)
 const collectedKeys = new Set()
@@ -260,6 +319,7 @@ function loadChapter(nextChapter, entryPosition = nextChapter.spawn, restoreStat
   camera.setZones(chapterData.zones || [])
   if (restoreState && chapterStates.has(nextChapter)) chapter.restore(chapterStates.get(nextChapter))
   player.reset(entryPosition)
+  chapter.separateRespawnFromPlayer?.(player)
   checkpoint = new Checkpoint(chapterData.checkpoints[0], chapter)
   checkpointIndex = 0
   checkpoint.activate()
@@ -310,6 +370,7 @@ function dieAtCheckpoint() {
   else {
     checkpoint.respawn(player, fallRespawn?.position || fallRespawn || checkpoint.position)
     chapter.applyFallRecovery?.(fallRespawn)
+    chapter.separateRespawnFromPlayer?.(player)
     if (!fallRespawn?.blockPosition) carriedBox?.placeNextTo(player)
   }
   respawnGrace = .8
@@ -375,7 +436,7 @@ const game = new Game({
   scene,
   camera,
   update: (dt) => {
-    if (finished || paused) return
+    if (finished || paused || avatarPickerOpen) return
     input.update()
     if (ending) {
       endingElapsed += dt

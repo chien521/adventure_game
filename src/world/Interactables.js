@@ -12,6 +12,19 @@ const NATURAL = {
 }
 
 const createFallbackMesh = (size, color) => new THREE.Mesh(new THREE.BoxGeometry(size.w, size.h, .8), new THREE.MeshStandardMaterial({ color, roughness: .9 }))
+const createLeverFallback = () => {
+  const base = createFallbackMesh({ w: .34, h: .18 }, '#50636b')
+  base.position.y = -.41
+  const handle = new THREE.Group()
+  handle.position.y = -.34
+  const stem = createFallbackMesh({ w: .1, h: .68 }, '#86b8bd')
+  stem.position.y = .34
+  handle.add(stem)
+  const fallback = new THREE.Group()
+  fallback.add(base, handle)
+  fallback.userData.handle = handle
+  return fallback
+}
 
 export class Box {
   constructor(scene, position, bounds = { min: -12.8, max: 12.8 }, interactions = { carry: true, push: false }) {
@@ -121,11 +134,24 @@ export class Box {
     this.lastPlaced = { x: this.body.x, y: this.body.y }
     this.sync()
   }
+  separateFromPlayer(player) {
+    const horizontalOverlap = Math.abs(this.body.x - player.body.x) < this.body.w / 2 + player.body.hw
+    const verticalOverlap = Math.abs(this.body.y - player.body.y) < this.body.h / 2 + player.body.hh + .08
+    if (!horizontalOverlap || !verticalOverlap || this.carried) return
+    const distance = this.body.w / 2 + player.body.hw + .08
+    const preferredDirection = player.facing || 1
+    const preferredX = player.body.x + preferredDirection * distance
+    const alternateX = player.body.x - preferredDirection * distance
+    const canUse = (x) => x - this.body.w / 2 >= this.bounds.min && x + this.body.w / 2 <= this.bounds.max
+    this.body.x = canUse(preferredX) ? preferredX : alternateX
+    this.lastPlaced = { x: this.body.x, y: this.body.y }
+    this.sync()
+  }
   sync() { this.mesh.position.set(this.body.x, this.body.y, 0) }
 }
 
 export class Lever {
-  constructor(scene, position, onToggle, audio = null, { requiresJumpAction = false, pullRange = { x: 1.2, y: 1.2 }, oneShot = false } = {}) {
+  constructor(scene, position, onToggle, audio = null, { requiresJumpAction = false, pullRange = { x: 1.2, y: 1.2 }, oneShot = false, rotation = 0 } = {}) {
     this.position = position
     this.body = null
     this.on = false
@@ -135,12 +161,25 @@ export class Lever {
     this.requiresJumpAction = requiresJumpAction
     this.pullRange = pullRange
     this.oneShot = oneShot
-    this.mesh = createModelSlot(createFallbackMesh({ w: .22, h: 1 }, '#86b8bd'), '/models/platformer/lever.glb', {
+    const fallback = createLeverFallback()
+    this.handle = fallback.userData.handle
+    this.mesh = createModelSlot(fallback, '/models/platformer/lever.glb', {
       tintColor: '#86b8bd',
       scale: 1 / NATURAL.lever.h,
+      onLoad: (model) => {
+        this.handle = model.getObjectByName('handle')
+        this.syncVisualState()
+      },
     })
     this.mesh.position.set(position.x, position.y, .1)
+    this.mesh.rotation.z = rotation
     scene.add(this.mesh)
+    this.syncVisualState()
+  }
+
+  syncVisualState() {
+    if (!this.handle) return
+    this.handle.rotation.z = this.on ? -.8 : .8
   }
 
   update(player, input, busy = false) {
@@ -149,7 +188,7 @@ export class Lever {
     const withinPullRange = Math.abs(player.body.x - this.position.x) < this.pullRange.x && Math.abs(player.body.y - this.position.y) < this.pullRange.y
     if (input.actionPressed && canPull && withinPullRange) {
       this.on = this.oneShot || !this.on
-      this.mesh.rotation.z = this.on ? -.8 : .8
+      this.syncVisualState()
       this.onToggle(this.on)
       this.audio?.leverClunk()
       input.actionPressed = false
@@ -162,7 +201,7 @@ export class Lever {
   setVisible(visible) { this.visible = visible; this.mesh.visible = visible }
   save() { return this.on }
   collider() { return this.body }
-  restore(value) { this.on = value; this.mesh.rotation.z = value ? -.8 : .8; this.onToggle(value) }
+  restore(value) { this.on = value; this.syncVisualState(); this.onToggle(value) }
 }
 
 export class Door {
