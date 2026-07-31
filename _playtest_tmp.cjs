@@ -15,7 +15,7 @@ const { chromium } = require('playwright')
   const g = await page.evaluateHandle(() => window.__game)
   const hasGame = await page.evaluate(() => !!window.__game)
   console.log('hasGame', hasGame)
-  await page.evaluate(() => window.__game.loadChapter?.('spring'))
+  await page.click('[data-chapter="spring"]').catch(() => {})
   await page.waitForTimeout(2000)
   // walk right a bit to trigger walk anim
   await page.keyboard.down('ArrowRight')
