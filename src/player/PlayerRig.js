@@ -2,11 +2,18 @@ import * as THREE from 'three'
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js'
 import { VRMLoaderPlugin, VRMUtils } from '@pixiv/three-vrm'
 
+const WANDERER_MODEL_URL = '/models/player/wanderer.glb'
+
 export class PlayerRig {
   constructor() {
     this.root = new THREE.Group()
     this.avatar = null
     this.avatarRoot = new THREE.Group()
+    this.modelRoot = new THREE.Group()
+    this.mixer = null
+    this.actions = null
+    this.currentAction = null
+    this.lastUpdateTime = null
     this.fallback = new THREE.Group()
     const coat = new THREE.MeshStandardMaterial({ color: '#465b69', roughness: .95 })
     const trousers = new THREE.MeshStandardMaterial({ color: '#293744', roughness: 1 })
@@ -37,8 +44,58 @@ export class PlayerRig {
       return leg
     })
     this.fallback.add(this.body, this.head, beard, hatBrim, hatCrown, backpack, staff)
-    this.root.add(this.fallback, this.avatarRoot)
+    this.root.add(this.fallback, this.modelRoot, this.avatarRoot)
     this.root.traverse((mesh) => { if (mesh.isMesh) mesh.castShadow = true })
+    this.loadWandererModel()
+  }
+
+  // Loads the default low-poly wanderer model (KayKit Adventurers "Mage", CC0) as a replacement for
+  // the primitive fallback. If it fails to load, the fallback stays visible and a warning is logged —
+  // this must never throw, since it runs unattended at construction time.
+  async loadWandererModel() {
+    try {
+      const loader = new GLTFLoader()
+      const gltf = await loader.loadAsync(WANDERER_MODEL_URL)
+      const model = gltf.scene
+      const bounds = new THREE.Box3().setFromObject(model)
+      const size = bounds.getSize(new THREE.Vector3())
+      if (size.y <= 0) throw new Error('Wanderer model has no visible height.')
+      const scale = 1.65 / size.y
+      model.scale.setScalar(scale)
+      model.updateMatrixWorld(true)
+      const scaledBounds = new THREE.Box3().setFromObject(model)
+      const center = scaledBounds.getCenter(new THREE.Vector3())
+      model.position.set(-center.x, -scaledBounds.min.y, -center.z)
+      model.traverse((child) => {
+        if (child.isMesh) {
+          child.castShadow = true
+          child.receiveShadow = true
+        }
+      })
+
+      this.mixer = new THREE.AnimationMixer(model)
+      const clip = (name) => THREE.AnimationClip.findByName(gltf.animations, name)
+      this.actions = {
+        idle: this.mixer.clipAction(clip('Idle')),
+        walk: this.mixer.clipAction(clip('Running_A')),
+        jump: this.mixer.clipAction(clip('Jump_Idle')),
+      }
+      Object.values(this.actions).forEach((action) => { action.play(); action.setEffectiveWeight(0) })
+      this.currentAction = this.actions.idle
+      this.currentAction.setEffectiveWeight(1)
+
+      this.modelRoot.add(model)
+      this.fallback.visible = false
+    } catch (error) {
+      console.warn('[PlayerRig] failed to load wanderer model — using primitive fallback.', error)
+    }
+  }
+
+  setAction(next) {
+    if (!this.actions || this.currentAction === next) return
+    next.reset().setEffectiveWeight(1).fadeIn(.2)
+    this.currentAction.fadeOut(.2)
+    this.currentAction = next
   }
 
   async setAvatar(url) {
@@ -74,6 +131,7 @@ export class PlayerRig {
     this.avatarRoot.add(gltf.scene)
     this.avatar = vrm
     this.fallback.visible = false
+    this.modelRoot.visible = false
   }
 
   update(x, y, speed, facing, time, grounded = false, verticalSpeed = 0, landingSquash = 0, pushing = false) {
@@ -88,10 +146,18 @@ export class PlayerRig {
     this.head.position.y = 1.15 + idle
     this.body.rotation.z = -Math.abs(speed) * .045 - (pushing ? .1 : 0)
     this.head.rotation.z = !grounded && Math.abs(verticalSpeed) < 1.4 ? -.14 : 0
+    const dt = this.lastUpdateTime === null ? 0 : Math.min(time - this.lastUpdateTime, .1)
+    this.lastUpdateTime = time
     if (this.avatar) {
       this.avatarRoot.rotation.y = facing > 0 ? -Math.PI / 2 : Math.PI / 2
       this.avatarRoot.position.y = idle
       this.avatar.update(1 / 60)
+    } else if (this.mixer) {
+      this.modelRoot.rotation.y = facing > 0 ? -Math.PI / 2 : Math.PI / 2
+      this.modelRoot.position.y = idle
+      this.setAction(!grounded ? this.actions.jump : moving < .08 ? this.actions.idle : this.actions.walk)
+      this.mixer.timeScale = !grounded ? 1 : .6 + moving * .9
+      this.mixer.update(dt)
     }
   }
 }
