@@ -153,7 +153,7 @@ export class PlayerRig {
       this.avatarRoot.position.y = idle
       this.avatar.update(1 / 60)
     } else if (this.mixer) {
-      this.modelRoot.rotation.y = facing > 0 ? -Math.PI / 2 : Math.PI / 2
+      this.modelRoot.rotation.y = facing > 0 ? Math.PI / 2 : -Math.PI / 2
       this.modelRoot.position.y = idle
       this.setAction(!grounded ? this.actions.jump : moving < .08 ? this.actions.idle : this.actions.walk)
       this.mixer.timeScale = !grounded ? 1 : .6 + moving * .9
