@@ -32,7 +32,12 @@ viverseAvatarSlot.id = 'viverse-avatar-slot'
 const viverseAvatarStatus = document.createElement('p')
 viverseAvatarStatus.id = 'viverse-avatar-status'
 viverseAvatarStatus.setAttribute('aria-live', 'polite')
-viverseAvatarSlot.append(viverseAvatarStatus)
+const viverseDisconnectButton = document.createElement('button')
+viverseDisconnectButton.type = 'button'
+viverseDisconnectButton.className = 'viverse-avatar-button'
+viverseDisconnectButton.textContent = 'use default traveler'
+viverseDisconnectButton.hidden = true
+viverseAvatarSlot.append(viverseAvatarStatus, viverseDisconnectButton)
 document.querySelector('#guide-button').before(viverseAvatarSlot)
 const triggerCard = guide.querySelector('.guide-mechanics article:nth-child(2)')
 triggerCard.querySelector('h3').textContent = 'One-Shot And Infinity'
@@ -155,6 +160,13 @@ const audio = new Audio()
 const player = new Player(scene, input, audio, spring.spawn)
 let avatarPickerOpen = false
 const setViverseAvatarStatus = (message = '') => { viverseAvatarStatus.textContent = message }
+const setViverseAvatarConnected = (connected) => { viverseDisconnectButton.hidden = !connected }
+viverseDisconnectButton.addEventListener('click', () => {
+  player.rig.useDefaultTraveler()
+  setViverseAvatarConnected(false)
+  setViverseAvatarStatus('Using the default traveler.')
+  renderer.domElement.focus()
+})
 addEventListener('viverse-me:open', () => {
   avatarPickerOpen = true
   input.clear()
@@ -188,6 +200,7 @@ addEventListener('viverse-me:avatar-selected', async (event) => {
   setViverseAvatarStatus('Loading your VIVERSE avatar...')
   try {
     await player.rig.setAvatar(avatarLoadUrl(avatar.vrmUrl))
+    setViverseAvatarConnected(true)
     setViverseAvatarStatus('VIVERSE avatar selected.')
   } catch (error) {
     console.warn('Failed to load selected VIVERSE avatar.', error)

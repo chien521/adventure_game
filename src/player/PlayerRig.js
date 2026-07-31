@@ -134,6 +134,15 @@ export class PlayerRig {
     this.modelRoot.visible = false
   }
 
+  useDefaultTraveler() {
+    this.avatarRoot.clear()
+    this.avatarRoot.position.set(0, 0, 0)
+    this.avatarRoot.rotation.set(0, 0, 0)
+    this.avatar = null
+    this.modelRoot.visible = this.modelRoot.children.length > 0
+    this.fallback.visible = !this.modelRoot.visible
+  }
+
   update(x, y, speed, facing, time, grounded = false, verticalSpeed = 0, landingSquash = 0, pushing = false) {
     this.root.position.set(x, y - .9, 0)
     this.root.scale.x = 1
