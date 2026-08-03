@@ -109,6 +109,9 @@ export class ViverseSession {
     }
   }
 
+  /** Synchronous check of whatever auth state is already cached in memory — does not itself check with the SDK. */
+  isLoggedIn() { return Boolean(this.auth?.access_token) }
+
   /** Resolves once an authenticated session exists, redirecting to VIVERSE login if needed. */
   async ensureLogin(pendingPayload) {
     const auth = await this.checkAuth()

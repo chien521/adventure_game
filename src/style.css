@@ -18,11 +18,11 @@ canvas { position: fixed; inset: 0; z-index: 0; }
 @keyframes prelude-reveal { to { opacity: 1; } }
 #start-content { display: grid; justify-items: center; gap: 1.6rem; }
 #start.chapter-selection #start-content { width: min(68rem, calc(100vw - 3rem)); gap: 1.15rem; transform: translateY(clamp(.75rem, 2vh, 1.5rem)); }
-#start.chapter-selection #start-button, #start.chapter-selection #viverse-avatar-button, #start.chapter-selection #guide-button { display: none; }
+#start.chapter-selection #start-button, #start.chapter-selection #viverse-avatar-button, #start.chapter-selection #guide-button, #start.chapter-selection #start-see-records-button { display: none; }
 #start:not(.chapter-selection) #chapter-select, #start:not(.chapter-selection) #chapter-back, #start:not(.chapter-selection) #chapter-restart { display: none; }
-#guide-button, #guide-page-button, #guide-chapter-select { color: #aebfc0; min-height: 2.8rem; background: transparent; border: 1px solid #4f6870; padding: .7rem 1.25rem; font: 600 .9rem/1 system-ui, sans-serif; letter-spacing: .08rem; text-transform: uppercase; white-space: nowrap; cursor: pointer; }
-#chapter-back, #chapter-restart, #guide-button, #guide-page-button, #guide-chapter-select { color: #aebfc0; min-height: 2.8rem; background: transparent; border: 1px solid #4f6870; padding: .7rem 1.25rem; font: 600 .9rem/1 system-ui, sans-serif; letter-spacing: .08rem; text-transform: uppercase; white-space: nowrap; cursor: pointer; }
-#chapter-back:hover, #chapter-back:focus-visible, #chapter-restart:hover, #chapter-restart:focus-visible, #guide-button:hover, #guide-button:focus-visible, #guide-page-button:hover, #guide-page-button:focus-visible, #guide-chapter-select:hover, #guide-chapter-select:focus-visible { color: #101820; background: #d8e8e8; outline: none; }
+#guide-button, #guide-page-button, #guide-chapter-select, #start-see-records-button { color: #aebfc0; min-height: 2.8rem; background: transparent; border: 1px solid #4f6870; padding: .7rem 1.25rem; font: 600 .9rem/1 system-ui, sans-serif; letter-spacing: .08rem; text-transform: uppercase; white-space: nowrap; cursor: pointer; }
+#chapter-back, #chapter-restart, #guide-button, #guide-page-button, #guide-chapter-select, #start-see-records-button { color: #aebfc0; min-height: 2.8rem; background: transparent; border: 1px solid #4f6870; padding: .7rem 1.25rem; font: 600 .9rem/1 system-ui, sans-serif; letter-spacing: .08rem; text-transform: uppercase; white-space: nowrap; cursor: pointer; }
+#chapter-back:hover, #chapter-back:focus-visible, #chapter-restart:hover, #chapter-restart:focus-visible, #guide-button:hover, #guide-button:focus-visible, #guide-page-button:hover, #guide-page-button:focus-visible, #guide-chapter-select:hover, #guide-chapter-select:focus-visible, #start-see-records-button:hover, #start-see-records-button:focus-visible { color: #101820; background: #d8e8e8; outline: none; }
 #chapter-select { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: .75rem; width: 100%; }
 #start.chapter-selection #chapter-back { margin-top: clamp(1.5rem, 5vh, 3rem); }
 #chapter-select .chapter-card { --card: #86b8bd; position: relative; display: flex; min-height: min(48vh, 24rem); flex-direction: column; align-items: flex-start; justify-content: flex-end; overflow: hidden; color: #e7f1f0; background: #152832; border: 1px solid color-mix(in srgb, var(--card), #101820 38%); padding: 1.15rem; text-align: left; cursor: pointer; transition: transform .25s ease, background .25s ease, border-color .25s ease; }
@@ -112,10 +112,12 @@ canvas { position: fixed; inset: 0; z-index: 0; }
 #ending:not(.cinematic) #see-records-button, #ending:not(.cinematic) #submit-run-button { display: block; }
 #submit-run-button[hidden] { display: none; }
 #see-records-button:hover, #see-records-button:focus-visible, #submit-run-button:hover, #submit-run-button:focus-visible { color: #101820; background: #d8e8e8; outline: none; }
+#submit-run-button:disabled { color: #718083; border-color: #36464b; cursor: not-allowed; opacity: .6; }
+#submit-run-button:disabled:hover, #submit-run-button:disabled:focus-visible { color: #718083; background: transparent; outline: none; }
 #ending .locket { margin-bottom: 1rem; transform: scale(1.35); }
 #ending #key-count { margin-top: .75rem; color: #72878b; font-size: .68rem; text-transform: uppercase; }
 #ending.intro { z-index: 8; align-content: start; overflow-y: auto; box-sizing: border-box; padding: clamp(2rem, 7vh, 5rem) 1.5rem; background: #000; opacity: 1; pointer-events: auto; transition: none; }
-#ending.intro .locket, #ending.intro h1, #ending.intro #key-count, #ending.intro #ending-return { display: none; }
+#ending.intro .locket, #ending.intro h1, #ending.intro #key-count, #ending.intro #ending-return, #ending.intro #see-records-button, #ending.intro #submit-run-button { display: none; }
 #ending.intro #ending-message { width: min(42rem, 100%); color: #d8e8e8; font: 1rem/1.68 Georgia, serif; letter-spacing: 0; text-align: left; white-space: pre-line; }
 #spring-intro-start { display: none; width: 12.5rem; margin: 1.5rem 0 0; min-height: 2.7rem; color: #d8e8e8; background: transparent; border: 1px solid #7e9ca4; padding: .55rem 1rem; font: 500 .8rem/1 system-ui, sans-serif; letter-spacing: .08rem; text-transform: uppercase; cursor: pointer; opacity: 0; pointer-events: none; transition: opacity .5s ease; }
 #ending.intro #spring-intro-start { display: block; }
@@ -151,7 +153,7 @@ canvas { position: fixed; inset: 0; z-index: 0; }
 .records-list { list-style: none; margin: 0; padding: 0; max-height: 14rem; overflow-y: auto; width: min(24rem, 90vw); color: #d8e8e8; font: 500 .8rem/1.6 system-ui, sans-serif; }
 .records-list li { border-bottom: 1px solid #2c3f45; padding: .2rem 0; }
 .records-list .records-empty { color: #72878b; text-align: center; }
-#start-button, #guide-button, #viverse-avatar-button, #guide-page-button, #guide-chapter-select, #chapter-back, #chapter-restart, #pause button, #ending-return, #ending-restart, #spring-intro-start, #see-records-button, #submit-run-button, #records-page-button, #restart-dialog-actions button {
+#start-button, #guide-button, #viverse-avatar-button, #start-see-records-button, #guide-page-button, #guide-chapter-select, #chapter-back, #chapter-restart, #pause button, #ending-return, #ending-restart, #spring-intro-start, #see-records-button, #submit-run-button, #records-page-button, #restart-dialog-actions button {
 	box-sizing: border-box;
 	width: min(18rem, calc(100vw - 3rem));
 	min-height: 3rem;
@@ -166,7 +168,7 @@ canvas { position: fixed; inset: 0; z-index: 0; }
 	white-space: normal;
 	cursor: pointer;
 }
-#start-button:hover, #start-button:focus-visible, #guide-button:hover, #guide-button:focus-visible, #viverse-avatar-button:hover, #viverse-avatar-button:focus-visible, #guide-page-button:hover, #guide-page-button:focus-visible, #guide-chapter-select:hover, #guide-chapter-select:focus-visible, #chapter-back:hover, #chapter-back:focus-visible, #chapter-restart:hover, #chapter-restart:focus-visible, #pause button:hover, #pause button:focus-visible, #ending-return:hover, #ending-return:focus-visible, #ending-restart:hover, #ending-restart:focus-visible, #spring-intro-start:hover, #spring-intro-start:focus-visible, #leaderboard-submit:hover, #leaderboard-submit:focus-visible, #restart-dialog-actions button:hover, #restart-dialog-actions button:focus-visible { color: #101820; background: #d8e8e8; outline: none; }
+#start-button:hover, #start-button:focus-visible, #guide-button:hover, #guide-button:focus-visible, #viverse-avatar-button:hover, #viverse-avatar-button:focus-visible, #start-see-records-button:hover, #start-see-records-button:focus-visible, #guide-page-button:hover, #guide-page-button:focus-visible, #guide-chapter-select:hover, #guide-chapter-select:focus-visible, #chapter-back:hover, #chapter-back:focus-visible, #chapter-restart:hover, #chapter-restart:focus-visible, #pause button:hover, #pause button:focus-visible, #ending-return:hover, #ending-return:focus-visible, #ending-restart:hover, #ending-restart:focus-visible, #spring-intro-start:hover, #spring-intro-start:focus-visible, #restart-dialog-actions button:hover, #restart-dialog-actions button:focus-visible { color: #101820; background: #d8e8e8; outline: none; }
 #ending.intro #spring-intro-start, #ending.intro #ending-restart { opacity: 1; pointer-events: auto; transition: none; }
 #touch-controls { display: none; position: fixed; z-index: 3; inset: auto 0 1rem; justify-content: space-between; padding: 0 1rem; pointer-events: none; }
 .touch-half { display: flex; gap: .55rem; pointer-events: auto; }

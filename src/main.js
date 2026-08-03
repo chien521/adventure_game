@@ -408,7 +408,10 @@ function finish() {
   submitRunButton.hidden = !allChapters
   if (allChapters) {
     lastRunSummary = { elapsedSeconds: elapsedRunTime() / 1000, allKeys: keyCount === 4 }
-    submitRunButton.disabled = false
+    // Only enabled once already connected to VIVERSE (via "use my VIVERSE avatar" earlier) — this
+    // never triggers a surprise login redirect from the ending screen on its own.
+    submitRunButton.disabled = !viverseSession.isLoggedIn()
+    submitRunButton.title = submitRunButton.disabled ? 'Connect your VIVERSE avatar first to submit a run.' : ''
   }
 }
 
@@ -581,6 +584,10 @@ const viverseAvatarButton = document.createElement('button')
 viverseAvatarButton.id = 'viverse-avatar-button'
 viverseAvatarButton.type = 'button'
 viverseAvatarButton.textContent = 'use my VIVERSE avatar'
+const startSeeRecordsButton = document.createElement('button')
+startSeeRecordsButton.id = 'start-see-records-button'
+startSeeRecordsButton.type = 'button'
+startSeeRecordsButton.textContent = 'see records'
 const chapterBackButton = document.createElement('button')
 chapterBackButton.id = 'chapter-back'
 chapterBackButton.type = 'button'
@@ -590,6 +597,7 @@ chapterRestartButton.id = 'chapter-restart'
 chapterRestartButton.type = 'button'
 chapterRestartButton.textContent = 'restart the journey'
 document.querySelector('#start-button').after(viverseAvatarButton)
+document.querySelector('#guide-button').after(startSeeRecordsButton)
 chapterSelect.after(chapterBackButton)
 chapterBackButton.after(chapterRestartButton)
 const endingRestartButton = document.createElement('button')
@@ -651,11 +659,13 @@ const setRecordsVisible = (visible) => {
   else renderer.domElement.focus()
 }
 recordsCloseButton.addEventListener('click', () => setRecordsVisible(false))
-seeRecordsButton.addEventListener('click', () => {
+const openRecords = () => {
   setRecordsPage(1)
   setRecordsVisible(true)
   loadRecords()
-})
+}
+seeRecordsButton.addEventListener('click', openRecords)
+startSeeRecordsButton.addEventListener('click', openRecords)
 
 submitRunButton.addEventListener('click', () => {
   if (!lastRunSummary) return
