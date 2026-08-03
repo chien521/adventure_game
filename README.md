@@ -14,6 +14,7 @@ The game is built with [Three.js](https://threejs.org/) and [Vite](https://vitej
 - Route-switching puzzles with doors, levers, floor triggers, bridges, and moving platforms.
 - Checkpoint and route-aware recovery designed to return the player to a useful puzzle state.
 - A built-in two-page how-to-play guide with live gameplay examples.
+- A live run timer, and optional VIVERSE integration: play as your own VIVERSE avatar, browse global speedrun records with no login required, and submit your own time once you connect an account.
 
 ## Screenshots
 
@@ -76,6 +77,14 @@ An orange mechanical ascent with moving crushers, alternating footholds, a verti
 
 A white, two-level puzzle centered on a manual elevator and two coupled routes. The block can travel on the lift, reusable infinity triggers move blockers between ground and upper paths, and separate levers reveal the key and exit portal. Winter also has deliberate recovery rules: a fall from the right wall returns to the top route, while right-void falls restore the player and block to the appropriate route beside the relevant lever.
 
+## VIVERSE Integration
+
+The game is fully playable with no account, and never contacts VIVERSE unless you explicitly ask it to:
+
+- **Use my VIVERSE avatar** (start screen) — logs into your VIVERSE account and replaces the default traveler with your own equipped avatar for the rest of the session.
+- **See records** (start screen and ending screen) — opens a records window with two global leaderboards, fastest full run and fastest run with all 4 keys, viewable without logging in.
+- **Submit my run** (ending screen, after finishing all four chapters) — only enabled once you've connected a VIVERSE account; uploads your run time to the full-run leaderboard, and to the all-keys leaderboard too if you collected all four memory keys.
+
 ## Technical Notes
 
 The game uses vanilla ES modules with a small custom 2D gameplay layer rendered through Three.js:
@@ -85,6 +94,7 @@ The game uses vanilla ES modules with a small custom 2D gameplay layer rendered 
 - `src/world/ChapterLoader.js` builds each chapter's runtime mechanics.
 - `src/world/Interactables.js` contains blocks, levers, doors, and pressure plates.
 - `src/core/` contains input, camera, audio, checkpoints, physics, and game-loop utilities.
+- `src/viverse/ViverseSession.js` is the single entry point for VIVERSE login, avatar, and leaderboard calls.
 - `public/` contains the chapter and guide screenshots used by the menu and documentation.
 
 ## Run Locally
@@ -97,6 +107,8 @@ npm run dev
 ```
 
 Vite prints the local development URL, usually `http://127.0.0.1:5173/`.
+
+VIVERSE login and leaderboard submission only work once the game is actually hosted on a VIVERSE World (see `.env.example` for the required `VITE_VIVERSE_*` variables); locally they show a graceful "unavailable" status instead.
 
 ### Production Build
 
