@@ -1,6 +1,6 @@
 # What the Snow Remembers
 
-**[Play the game](https://chien521.github.io/adventure_game/)**
+**[Play the live demo](https://chien521.github.io/adventure_game/)**
 
 *What the Snow Remembers* is a browser-based 3D puzzle-platform adventure about crossing four changing landscapes and recovering fragments of a life that has been forgotten. Each season is a compact, hand-built challenge where blocks, triggers, doors, lifts, levers, and routes must be read as one connected machine.
 
@@ -48,6 +48,10 @@ The keys never gate progress; every chapter's portal is reachable without one. T
 | `E` | Carry or place a block; use a nearby lever |
 | `Q` | Use a nearby visible portal |
 | Escape | Pause |
+
+### Mobile Controls
+
+The live demo supports both portrait and landscape play on touch devices. Use the left and right controls to move, the triangle to jump, `C` to carry blocks or operate levers, and `Q` at a visible portal. Controls are positioned around device safe areas and do not require the browser to be locked to one orientation.
 
 ### Puzzle Vocabulary
 
