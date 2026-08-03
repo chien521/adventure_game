@@ -141,9 +141,9 @@ canvas { position: fixed; inset: 0; z-index: 0; }
 #viverse-avatar-status { min-height: 1rem; margin: 0; color: #86b8bd; font: 500 .7rem/1.35 system-ui, sans-serif; letter-spacing: .03rem; text-align: center; }
 #records { position: fixed; inset: 0; z-index: 6; display: none; box-sizing: border-box; place-items: center; overflow-y: auto; padding: 1.5rem 0; background: #101820; }
 #records.visible { display: grid; }
-#records-content { position: relative; width: min(28rem, calc(100vw - 2.5rem)); display: grid; justify-items: center; gap: 1.1rem; color: #d8e8e8; }
+#records-content { position: relative; box-sizing: border-box; width: min(28rem, calc(100vw - 2.5rem)); padding: 2rem 1.5rem 1.75rem; display: grid; justify-items: center; gap: 1.1rem; color: #d8e8e8; border: 2px solid #f4f4f4; box-shadow: 0 .8rem 2.5rem #000a; }
 #records-content h1 { margin: 0; font: 500 clamp(1.4rem, 4vw, 1.9rem)/1 Georgia, serif; letter-spacing: 0; }
-#records-close { position: absolute; top: -.5rem; right: 0; width: 2rem; height: 2rem; color: #aebfc0; background: transparent; border: 0; font: 1.5rem/1 system-ui, sans-serif; cursor: pointer; }
+#records-close { position: absolute; top: .6rem; right: .6rem; width: 2rem; height: 2rem; color: #aebfc0; background: transparent; border: 0; font: 1.5rem/1 system-ui, sans-serif; cursor: pointer; }
 #records-close:hover, #records-close:focus-visible { color: #d8e8e8; outline: 1px solid #7e9ca4; }
 #records-status { min-height: 1rem; margin: 0; color: #86b8bd; font: 500 .7rem/1.35 system-ui, sans-serif; letter-spacing: .03rem; text-align: center; }
 .records-pages { display: grid; width: 100%; }

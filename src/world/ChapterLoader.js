@@ -682,7 +682,6 @@ export class ChapterLoader {
       keyLever.setVisible(on)
       if (on && !restoring) keyLeverRevealPending = true
     }, audio, { oneShot: true })
-    let rightCanyonBlockJumpRoute = null
     const playerSpaceIsClear = (position) => [
       ...chapter.colliders,
       elevator.body,
@@ -708,8 +707,6 @@ export class ChapterLoader {
         secondGroundPlate.update(movableBoxes)
         secondTopPlate.update(movableBoxes)
         const standingOnBlock = !groundBox.carried && !groundBox.falling && Math.abs(player.body.x - groundBox.body.x) < groundBox.body.w / 2 + player.body.hw - .05 && Math.abs((player.body.y - player.body.hh) - (groundBox.body.y + groundBox.body.h / 2)) < .08
-        if (player.jumpLaunchBlock === groundBox) rightCanyonBlockJumpRoute = groundBox.body.y >= 5 ? 'upper' : 'ground'
-        else if (player.body.grounded) rightCanyonBlockJumpRoute = null
         player.setPushing(boxPushed)
         key.update(dt)
       },
@@ -720,7 +717,7 @@ export class ChapterLoader {
           elevator: elevator.save(), elevatorLever: elevatorLever.save(), groundBox: groundBox.save(), groundDoorY: groundDoor.body.y,
           groundPlateRemaining: groundPlate.remaining, topPlateRemaining: topPlate.remaining, secondDoorY: secondDoor.body.y,
           secondGroundPlateRemaining: secondGroundPlate.remaining, secondTopPlateRemaining: secondTopPlate.remaining,
-          keyLever: keyLever.save(), keyLeverVisible, portalLever: portalLever.save(), portalEnabled, rightWallLever: rightWallLever.save(), rightCanyonBlockJumpRoute,
+          keyLever: keyLever.save(), keyLeverVisible, portalLever: portalLever.save(), portalEnabled, rightWallLever: rightWallLever.save(),
         }
       },
       restore(snapshot) {
@@ -740,7 +737,6 @@ export class ChapterLoader {
         restoring = false
         keyLeverVisible = snapshot.keyLeverVisible ?? Boolean(snapshot.rightWallLever)
         keyLever.setVisible(keyLeverVisible)
-        rightCanyonBlockJumpRoute = snapshot.rightCanyonBlockJumpRoute || null
       },
       hits() { return false },
       recoverFall(target) {
@@ -748,16 +744,8 @@ export class ChapterLoader {
         const keyCollected = collectedKeys.has(chapter.key.id)
         if (fellIntoLeftVoid && !portalEnabled && !keyCollected) return { resetChapter: true }
 
-        const fellIntoRightVoid = target.body.x > chapter.rightCanyon.rightWallFallMinX
-        if (fellIntoRightVoid && rightCanyonBlockJumpRoute !== 'upper') {
-          const recovery = chapter.rightCanyon.keyLeverRespawn
-          return {
-            position: { x: recovery.x, y: recovery.y },
-            blockPosition: recovery.block,
-          }
-        }
-
-        const recovery = chapter.rightCanyon.portalLeverRespawn
+        const boxWasOnTopRoute = groundBox.body.y > chapter.rightCanyon.topRouteFallY / 2
+        const recovery = boxWasOnTopRoute ? chapter.rightCanyon.portalLeverRespawn : chapter.rightCanyon.keyLeverRespawn
         return {
           position: { x: recovery.x, y: recovery.y },
           blockPosition: recovery.block,
