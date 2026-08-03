@@ -14,9 +14,8 @@ import { winter } from './chapters/winter.js'
 import { viverseSession } from './viverse/ViverseSession.js'
 
 const app = document.querySelector('#app')
-app.innerHTML = '<div id="start"><div id="start-content"><button id="start-button" type="button">enter</button><button id="guide-button" type="button">how to play</button><div id="chapter-select" aria-label="Select chapter"><button data-chapter="spring" type="button">spring</button><button data-chapter="summer" type="button">summer</button><button data-chapter="autumn" type="button">autumn</button><button data-chapter="winter" type="button">winter</button></div></div><section id="guide" aria-labelledby="guide-title" aria-hidden="true"><div id="guide-content"><p class="guide-kicker">UNDERTOW FIELD NOTES</p><h1 id="guide-title">Find a way through.</h1><div id="guide-grid"><article><kbd>A</kbd><kbd>D</kbd><h2>Move</h2><p>Run, jump, and use the terrain to find a route.</p></article><article><kbd>W</kbd><h2>Jump</h2><p>Standing on a carried block readies one extra jump.</p></article><article><kbd>E</kbd><h2>Act</h2><p>Carry blocks, pull levers, and place blocks on red triggers.</p></article><article><kbd>Q</kbd><h2>Return</h2><p>Use a lavender portal when you are close enough to it.</p></article><article><span class="guide-mark">KEY</span><h2>Collect</h2><p>Optional keys persist once you leave a chapter through its exit.</p></article><article><span class="guide-mark">CHECKPOINT</span><h2>Recover</h2><p>Passing a checkpoint changes where a fall sends you back.</p></article></div><button id="guide-back" type="button">back</button></div></section></div><div id="key-hud" aria-live="polite">keys <span id="key-hud-count">0</span></div><div id="death" aria-hidden="true"></div><div id="pause"><button data-pause="resume" type="button">resume</button><button data-pause="restart" type="button">restart chapter</button></div><div id="ending" aria-live="polite"><h1>UNDERTOW</h1><p id="ending-message">thank you for playing.</p><p id="key-count">0/4 keys</p></div><div id="touch-controls" aria-hidden="true"><div class="touch-half"><button data-input="left" aria-label="Move left">&#x2039;</button><button data-input="right" aria-label="Move right">&#x203a;</button></div><div class="touch-half"><button data-input="jump" aria-label="Jump">A</button><button data-input="action" aria-label="Action">B</button></div></div>'
 const locket = () => '<div class="locket" role="img" aria-label="0 of 4 memories recovered"><span data-key="spring"></span><span data-key="summer"></span><span data-key="autumn"></span><span data-key="winter"></span></div>'
-app.innerHTML = `<section id="prelude" aria-labelledby="prelude-title" role="button" tabindex="0"><div id="prelude-content">${locket()}<p>I remember nothing. Only that something is owed.</p><h1 id="prelude-title">What the Snow Remembers</h1><span id="prelude-continue">click to continue</span></div></section><div id="start"><div id="start-content"><button id="start-button" type="button">enter</button><button id="guide-button" type="button">how to play</button><div id="chapter-select" aria-label="Select chapter"><button data-chapter="spring" type="button">spring</button><button data-chapter="summer" type="button">summer</button><button data-chapter="autumn" type="button">autumn</button><button data-chapter="winter" type="button">winter</button></div></div><section id="guide" aria-labelledby="guide-title" aria-hidden="true"></section></div><div id="key-hud" aria-live="polite">${locket()}</div><div id="timer-hud" aria-label="Run time">00:00</div><div id="death" aria-hidden="true"></div><div id="pause"><button data-pause="resume" type="button">resume</button><button data-pause="restart" type="button">restart chapter</button></div><div id="ending" aria-live="polite">${locket()}<h1>What the Snow Remembers</h1><p id="ending-message"></p><p id="ending-message-detail"></p><p id="key-count">0/4 keys</p><button id="ending-return" type="button">return to chapter selection</button></div><div id="touch-controls" aria-hidden="true"><div class="touch-half"><button data-input="left" aria-label="Move left">&#x2039;</button><button data-input="right" aria-label="Move right">&#x203A;</button></div><div class="touch-half"><button data-input="jump" aria-label="Jump">&#x25B3;</button><button data-input="action" aria-label="Action">E</button><button data-input="portal" aria-label="Use portal">Q</button></div></div>`
+app.innerHTML = `<section id="prelude" aria-labelledby="prelude-title" role="button" tabindex="0"><div id="prelude-content">${locket()}<p>I remember nothing. Only that something is owed.</p><h1 id="prelude-title">What the Snow Remembers</h1><span id="prelude-continue">click to continue</span></div></section><div id="start"><div id="start-content"><button id="start-button" class="btn" type="button">enter</button><button id="guide-button" class="btn" type="button">how to play</button><div id="chapter-select" aria-label="Select chapter"><button data-chapter="spring" type="button">spring</button><button data-chapter="summer" type="button">summer</button><button data-chapter="autumn" type="button">autumn</button><button data-chapter="winter" type="button">winter</button></div></div><section id="guide" aria-labelledby="guide-title" aria-hidden="true"></section></div><div id="key-hud" aria-live="polite">${locket()}</div><div id="timer-hud" aria-label="Run time">00:00</div><div id="death" aria-hidden="true"></div><div id="pause"><button data-pause="resume" class="btn" type="button">resume</button><button data-pause="restart" class="btn" type="button">restart chapter</button></div><div id="ending" aria-live="polite">${locket()}<h1>What the Snow Remembers</h1><p id="ending-message"></p><p id="ending-message-detail"></p><p id="key-count">0/4 keys</p><button id="ending-return" class="btn" type="button">return to chapter selection</button></div><div id="touch-controls" aria-hidden="true"><div class="touch-half"><button data-input="left" aria-label="Move left">&#x2039;</button><button data-input="right" aria-label="Move right">&#x203A;</button></div><div class="touch-half"><button data-input="jump" aria-label="Jump">&#x25B3;</button><button data-input="action" aria-label="Action">E</button><button data-input="portal" aria-label="Use portal">Q</button></div></div>`
 const prelude = document.querySelector('#prelude')
 const dismissPrelude = () => {
   if (prelude.classList.contains('hidden')) return
@@ -33,7 +32,7 @@ prelude.addEventListener('keydown', (event) => {
 const guide = document.querySelector('#guide')
 guide.remove()
 app.append(guide)
-guide.innerHTML = '<div id="guide-content"><p class="guide-kicker">WHAT THE SNOW REMEMBERS FIELD NOTES</p><h1 id="guide-title">Find a way through.</h1><p class="guide-objective">Reach each chapter&apos;s exit portal. Collecting a memory key is optional, but changes what is remembered at the end.</p><section class="guide-section" aria-labelledby="commands-title"><h2 id="commands-title">Key Commands</h2><div class="guide-grid guide-commands"><article><kbd>A</kbd><kbd>D</kbd><span class="key-or">or</span><kbd>&larr;</kbd><kbd>&rarr;</kbd><h3>Move</h3></article><article><kbd>W</kbd><span class="key-or">or</span><kbd>space</kbd><h3>Jump</h3></article><article><kbd>E</kbd><h3>Action</h3><p>Carry blocks and pull levers.</p></article><article><kbd>Q</kbd><h3>Portal</h3></article><article><kbd>escape</kbd><h3>Pause</h3></article></div></section><section class="guide-section" aria-labelledby="mechanics-title"><h2 id="mechanics-title">Puzzle Rules</h2><div class="guide-grid guide-mechanics"><article><span class="guide-mark">BLOCK</span><h3>Lift And Launch</h3><p>Blocks activate floor triggers. Stand on one before jumping to gain one extra jump.</p></article><article><span class="guide-mark">TRIGGER</span><h3>Two Kinds</h3><p>Some triggers fire once; others show a counter. An infinity counter means you can move the block off and back on repeatedly.</p></article><article><span class="guide-mark">DOOR</span><h3>Route Control</h3><p>A trigger may open a door, create a platform, or move a blocker between upper and ground routes.</p></article><article><span class="guide-mark">LEVER</span><h3>Reveal Or Move</h3><p>Levers can reveal an item, portal, or another control. Some latch after one use; others can be toggled.</p></article></div></section><section class="guide-section" aria-labelledby="objects-title"><h2 id="objects-title">World Objects</h2><div class="guide-grid guide-objects"><article><span class="guide-mark">LIFT</span><h3>Platform</h3><p>Moving platforms carry both the player and a block resting on them.</p></article><article><span class="guide-mark">PORTAL</span><h3>Exit Or Return</h3><p>Use a visible lavender portal when close enough. Some must be revealed first.</p></article><article><span class="guide-mark">KEY</span><h3>Collect</h3><p>Keys persist once you leave through a chapter exit.</p></article><article><span class="guide-mark">CHECKPOINT</span><h3>Recover</h3><p>Falls return you to a safe recent route or chapter-specific recovery point.</p></article><article><span class="guide-mark">ROUTES</span><h3>Read The Space</h3><p>When one route is blocked, use the other to change the puzzle state.</p></article></div></section><button id="guide-back" type="button">back</button></div>'
+guide.innerHTML = '<div id="guide-content"><p class="guide-kicker">WHAT THE SNOW REMEMBERS FIELD NOTES</p><h1 id="guide-title">Find a way through.</h1><p class="guide-objective">Reach each chapter&apos;s exit portal. Collecting a memory key is optional, but changes what is remembered at the end.</p><section class="guide-section" aria-labelledby="commands-title"><h2 id="commands-title">Key Commands</h2><div class="guide-grid guide-commands"><article><kbd>A</kbd><kbd>D</kbd><span class="key-or">or</span><kbd>&larr;</kbd><kbd>&rarr;</kbd><h3>Move</h3></article><article><kbd>W</kbd><span class="key-or">or</span><kbd>space</kbd><h3>Jump</h3></article><article><kbd>E</kbd><h3>Action</h3><p>Carry blocks and pull levers.</p></article><article><kbd>Q</kbd><h3>Portal</h3></article><article><kbd>escape</kbd><h3>Pause</h3></article></div></section><section class="guide-section" aria-labelledby="mechanics-title"><h2 id="mechanics-title">Puzzle Rules</h2><div class="guide-grid guide-mechanics"><article><span class="guide-mark">BLOCK</span><h3>Lift And Launch</h3><p>Blocks activate floor triggers. Stand on one before jumping to gain one extra jump.</p></article><article><span class="guide-mark">TRIGGER</span><h3>Two Kinds</h3><p>Some triggers fire once; others show a counter. An infinity counter means you can move the block off and back on repeatedly.</p></article><article><span class="guide-mark">DOOR</span><h3>Route Control</h3><p>A trigger may open a door, create a platform, or move a blocker between upper and ground routes.</p></article><article><span class="guide-mark">LEVER</span><h3>Reveal Or Move</h3><p>Levers can reveal an item, portal, or another control. Some latch after one use; others can be toggled.</p></article></div></section><section class="guide-section" aria-labelledby="objects-title"><h2 id="objects-title">World Objects</h2><div class="guide-grid guide-objects"><article><span class="guide-mark">LIFT</span><h3>Platform</h3><p>Moving platforms carry both the player and a block resting on them.</p></article><article><span class="guide-mark">PORTAL</span><h3>Exit Or Return</h3><p>Use a visible lavender portal when close enough. Some must be revealed first.</p></article><article><span class="guide-mark">KEY</span><h3>Collect</h3><p>Keys persist once you leave through a chapter exit.</p></article><article><span class="guide-mark">CHECKPOINT</span><h3>Recover</h3><p>Falls return you to a safe recent route or chapter-specific recovery point.</p></article><article><span class="guide-mark">ROUTES</span><h3>Read The Space</h3><p>When one route is blocked, use the other to change the puzzle state.</p></article></div></section><button id="guide-back" class="btn" type="button">back</button></div>'
 guide.removeAttribute('aria-labelledby')
 const actionCommand = guide.querySelector('.guide-commands article:nth-child(3)')
 actionCommand.innerHTML = '<kbd>C</kbd><h3>Action</h3><p>Carry blocks and pull levers.</p>'
@@ -79,10 +78,12 @@ const setGuidePage = (page) => {
 guidePageButton.addEventListener('click', () => setGuidePage(guidePageTwo.classList.contains('visible') ? 1 : 2))
   const guideChapterSelectButton = document.createElement('button')
   guideChapterSelectButton.id = 'guide-chapter-select'
+  guideChapterSelectButton.className = 'btn'
   guideChapterSelectButton.type = 'button'
   guideChapterSelectButton.textContent = 'return to chapter selection'
   guidePageButton.after(guideChapterSelectButton)
 const pauseGuideButton = document.createElement('button')
+pauseGuideButton.className = 'btn'
 pauseGuideButton.type = 'button'
 pauseGuideButton.textContent = 'how to play'
 pauseGuideButton.dataset.pause = 'guide'
@@ -107,6 +108,7 @@ const springIntroFlag = 'what-the-snow-remembers.hasSeenSpringIntro'
 const springIntro = document.querySelector('#ending')
 const springIntroStart = document.createElement('button')
 springIntroStart.id = 'spring-intro-start'
+springIntroStart.className = 'btn'
 springIntroStart.type = 'button'
 springIntroStart.textContent = 'Start the Journey'
 let springIntroActive = false
@@ -443,6 +445,7 @@ addEventListener('keydown', (event) => {
 document.querySelector('[data-pause="resume"]').addEventListener('click', () => setPaused(false))
 document.querySelector('[data-pause="restart"]').addEventListener('click', () => { restartChapter(); setPaused(false) })
 const returnToMenuButton = document.createElement('button')
+returnToMenuButton.className = 'btn'
 returnToMenuButton.type = 'button'
 returnToMenuButton.textContent = 'return to menu'
 returnToMenuButton.dataset.pause = 'menu'
@@ -582,18 +585,22 @@ const updateChapterUnlocks = () => {
 updateChapterUnlocks()
 const viverseAvatarButton = document.createElement('button')
 viverseAvatarButton.id = 'viverse-avatar-button'
+viverseAvatarButton.className = 'btn'
 viverseAvatarButton.type = 'button'
 viverseAvatarButton.textContent = 'use my VIVERSE avatar'
 const startSeeRecordsButton = document.createElement('button')
 startSeeRecordsButton.id = 'start-see-records-button'
+startSeeRecordsButton.className = 'btn'
 startSeeRecordsButton.type = 'button'
 startSeeRecordsButton.textContent = 'see records'
 const chapterBackButton = document.createElement('button')
 chapterBackButton.id = 'chapter-back'
+chapterBackButton.className = 'btn'
 chapterBackButton.type = 'button'
 chapterBackButton.textContent = 'back'
 const chapterRestartButton = document.createElement('button')
 chapterRestartButton.id = 'chapter-restart'
+chapterRestartButton.className = 'btn'
 chapterRestartButton.type = 'button'
 chapterRestartButton.textContent = 'restart the journey'
 document.querySelector('#start-button').after(viverseAvatarButton)
@@ -602,15 +609,18 @@ chapterSelect.after(chapterBackButton)
 chapterBackButton.after(chapterRestartButton)
 const endingRestartButton = document.createElement('button')
 endingRestartButton.id = 'ending-restart'
+endingRestartButton.className = 'btn'
 endingRestartButton.type = 'button'
 endingRestartButton.textContent = 'restart the journey'
 document.querySelector('#ending-return').after(endingRestartButton)
 const seeRecordsButton = document.createElement('button')
 seeRecordsButton.id = 'see-records-button'
+seeRecordsButton.className = 'btn'
 seeRecordsButton.type = 'button'
 seeRecordsButton.textContent = 'see records'
 const submitRunButton = document.createElement('button')
 submitRunButton.id = 'submit-run-button'
+submitRunButton.className = 'btn'
 submitRunButton.type = 'button'
 submitRunButton.textContent = 'submit my run'
 submitRunButton.hidden = true
@@ -621,7 +631,7 @@ const records = document.createElement('section')
 records.id = 'records'
 records.setAttribute('aria-hidden', 'true')
 records.setAttribute('aria-label', 'VIVERSE records')
-records.innerHTML = '<div id="records-content"><button id="records-close" type="button" aria-label="Close records">&times;</button><h1>VIVERSE Records</h1><p id="records-status" aria-live="polite"></p><div class="records-pages"><div class="records-page visible"><h2>Fastest Full Run</h2><ol class="records-list" id="records-list-any"></ol></div><div class="records-page"><h2>Fastest With All 4 Keys</h2><ol class="records-list" id="records-list-keys"></ol></div></div><button id="records-page-button" type="button">next</button></div>'
+records.innerHTML = '<div id="records-content"><button id="records-close" type="button" aria-label="Close records">&times;</button><h1>VIVERSE Records</h1><p id="records-status" aria-live="polite"></p><div class="records-pages"><div class="records-page visible"><h2>Fastest Full Run</h2><ol class="records-list" id="records-list-any"></ol></div><div class="records-page"><h2>Fastest With All 4 Keys</h2><ol class="records-list" id="records-list-keys"></ol></div></div><button id="records-page-button" class="btn" type="button">next</button></div>'
 app.append(records)
 const recordsPages = records.querySelectorAll('.records-page')
 const recordsPageButton = records.querySelector('#records-page-button')
@@ -676,7 +686,7 @@ restartDialog.id = 'restart-dialog'
 restartDialog.setAttribute('role', 'dialog')
 restartDialog.setAttribute('aria-modal', 'true')
 restartDialog.setAttribute('aria-labelledby', 'restart-dialog-message')
-restartDialog.innerHTML = '<div id="restart-dialog-panel"><button id="restart-dialog-close" type="button" aria-label="Close restart confirmation">&times;</button><p id="restart-dialog-message">Are you sure you want to restart everything? You will lose all the keys.</p><div id="restart-dialog-actions"><button id="restart-dialog-yes" type="button">yes</button><button id="restart-dialog-no" type="button">no</button></div></div>'
+restartDialog.innerHTML = '<div id="restart-dialog-panel"><button id="restart-dialog-close" type="button" aria-label="Close restart confirmation">&times;</button><p id="restart-dialog-message">Are you sure you want to restart everything? You will lose all the keys.</p><div id="restart-dialog-actions"><button id="restart-dialog-yes" class="btn btn--compact" type="button">yes</button><button id="restart-dialog-no" class="btn btn--compact" type="button">no</button></div></div>'
 app.append(restartDialog)
 
 let restartDialogTrigger = null
