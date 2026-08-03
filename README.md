@@ -26,18 +26,18 @@ The game is built with [Three.js](https://threejs.org/) and [Vite](https://vitej
 
 ## Story And Goal
 
-The Traveler wakes in a landscape of snow with only one certainty: something has been left unfinished. His path moves through spring, summer, autumn, and winter, but the journey is not simply across four places. It is a walk backward through a life, from childhood departure to companionship, loss, and the quiet approach to home.
+The Traveler wakes in the snow with no name, no memory, and only a hollow locket at their chest — four empty spaces where something used to be. They don't have to fill it. Nothing forces them through spring, summer, autumn, and winter looking for what's missing; they could walk the whole way and arrive with the locket exactly as empty as it started. But something in them wants to remember anyway.
 
-Nothing is explained during play. Instead, the story lives in recurring thresholds, distant silhouettes, changing routes, and the house that gradually comes into view. Snow marks the present moment; the locket records the Traveler's willingness to remember. Reaching each chapter's portal advances the journey, while the optional memory keys restore fragments of what he has spent a lifetime trying not to face.
+Nothing is explained during play. The story is told entirely in first person, through the passage the Traveler reads before setting out and the one they read at the very end — and the ending changes based on how many of the four memory keys were recovered along the way. Reach the end with none, and the passage is cold and unresolved: *"I reached the end and remembered nothing."* Reach it with all four, and the fragments resolve into a single, specific memory of someone once loved — one season for a hand letting go at a doorway, one for being looked at like something worth keeping, one for a goodbye at a door someone didn't come back through, and one for finally arriving, in winter, at a house they recognize.
 
 ### A Life In Four Seasons
 
-- **Spring — Beginning:** A child leaves the small world that first held him and steps into something larger alone.
-- **Summer — Bloom:** Warmth, companionship, and a memory of being seen by someone who made the world feel shared.
-- **Autumn — Falling:** The familiar world changes through absence, and the Traveler learns the shape of a goodbye.
-- **Winter — Stillness:** With the journey nearing its end, the house becomes clearer: a place that may be home, rest, or both.
+- **Spring — a hand letting go:** sent out alone for the first time, small enough that the whole world came up to their shoulders.
+- **Summer — being looked at:** warmth, and someone turning to look at them the way you look at something you've decided to keep.
+- **Autumn — a door:** a quieter goodbye, and a weight set down the way you set down something you already know you won't pick back up.
+- **Winter — the house:** the long walk after, and — finally, if enough of it was recovered — a house up ahead that they know.
 
-The keys never gate progress. They change only what the Traveler can understand at the end, making remembrance a choice rather than a requirement.
+The keys never gate progress; every chapter's portal is reachable without one. They only change what the ending remembers, which is what makes recovering them a choice rather than a requirement.
 
 ## How To Play
 
@@ -61,19 +61,19 @@ The keys never gate progress. They change only what the Traveler can understand 
 
 ## Chapters
 
-### 01. Spring - The Floodline
+### 01. Spring — Home Falls Behind
 
 A green, flooded threshold where the basic language of the game is introduced: carry a block, use it on plates, open doors, and chain route changes across a canyon. The optional key is behind its own block-and-trigger problem.
 
-### 02. Summer - The Outskirts
+### 02. Summer — Two Shadows Linger
 
 A bright industrial landscape built around stacked climbable structures, distant banks, and a bridge over a canyon. The chapter layers levers, doors, platforms, and a high hidden-key route that requires careful block use and jumping.
 
-### 03. Autumn - The Works
+### 03. Autumn — One Shadow Remains
 
 An orange mechanical ascent with moving crushers, alternating footholds, a vertical key route, and a lift that reconnects distant levels. The chapter emphasizes timing, safe staging points, and choosing the correct return route.
 
-### 04. Winter - The Core
+### 04. Winter — Snow Remembers Home
 
 A white, two-level puzzle centered on a manual elevator and two coupled routes. The block can travel on the lift, reusable infinity triggers move blockers between ground and upper paths, and separate levers reveal the key and exit portal. Winter also has deliberate recovery rules: a fall from the right wall returns to the top route, while right-void falls restore the player and block to the appropriate route beside the relevant lever.
 
