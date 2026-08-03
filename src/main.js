@@ -16,8 +16,20 @@ import { viverseSession } from './viverse/ViverseSession.js'
 const app = document.querySelector('#app')
 app.innerHTML = '<div id="start"><div id="start-content"><button id="start-button" type="button">enter</button><button id="guide-button" type="button">how to play</button><div id="chapter-select" aria-label="Select chapter"><button data-chapter="spring" type="button">spring</button><button data-chapter="summer" type="button">summer</button><button data-chapter="autumn" type="button">autumn</button><button data-chapter="winter" type="button">winter</button></div></div><section id="guide" aria-labelledby="guide-title" aria-hidden="true"><div id="guide-content"><p class="guide-kicker">UNDERTOW FIELD NOTES</p><h1 id="guide-title">Find a way through.</h1><div id="guide-grid"><article><kbd>A</kbd><kbd>D</kbd><h2>Move</h2><p>Run, jump, and use the terrain to find a route.</p></article><article><kbd>W</kbd><h2>Jump</h2><p>Standing on a carried block readies one extra jump.</p></article><article><kbd>E</kbd><h2>Act</h2><p>Carry blocks, pull levers, and place blocks on red triggers.</p></article><article><kbd>Q</kbd><h2>Return</h2><p>Use a lavender portal when you are close enough to it.</p></article><article><span class="guide-mark">KEY</span><h2>Collect</h2><p>Optional keys persist once you leave a chapter through its exit.</p></article><article><span class="guide-mark">CHECKPOINT</span><h2>Recover</h2><p>Passing a checkpoint changes where a fall sends you back.</p></article></div><button id="guide-back" type="button">back</button></div></section></div><div id="key-hud" aria-live="polite">keys <span id="key-hud-count">0</span></div><div id="death" aria-hidden="true"></div><div id="pause"><button data-pause="resume" type="button">resume</button><button data-pause="restart" type="button">restart chapter</button></div><div id="ending" aria-live="polite"><h1>UNDERTOW</h1><p id="ending-message">thank you for playing.</p><p id="key-count">0/4 keys</p></div><div id="touch-controls" aria-hidden="true"><div class="touch-half"><button data-input="left" aria-label="Move left">&#x2039;</button><button data-input="right" aria-label="Move right">&#x203a;</button></div><div class="touch-half"><button data-input="jump" aria-label="Jump">A</button><button data-input="action" aria-label="Action">B</button></div></div>'
 const locket = () => '<div class="locket" role="img" aria-label="0 of 4 memories recovered"><span data-key="spring"></span><span data-key="summer"></span><span data-key="autumn"></span><span data-key="winter"></span></div>'
-app.innerHTML = `<section id="prelude" aria-labelledby="prelude-title" role="button" tabindex="0"><div id="prelude-content">${locket()}<p>I remember nothing. Only that something is owed.</p><h1 id="prelude-title">What the Snow Remembers</h1><span id="prelude-continue">click to continue</span></div></section><div id="start"><div id="start-content"><button id="start-button" type="button">enter</button><button id="guide-button" type="button">how to play</button><div id="chapter-select" aria-label="Select chapter"><button data-chapter="spring" type="button">spring</button><button data-chapter="summer" type="button">summer</button><button data-chapter="autumn" type="button">autumn</button><button data-chapter="winter" type="button">winter</button></div></div><section id="guide" aria-labelledby="guide-title" aria-hidden="true"></section></div><div id="key-hud" aria-live="polite">${locket()}</div><div id="death" aria-hidden="true"></div><div id="pause"><button data-pause="resume" type="button">resume</button><button data-pause="restart" type="button">restart chapter</button></div><div id="ending" aria-live="polite">${locket()}<h1>What the Snow Remembers</h1><p id="ending-message"></p><p id="ending-message-detail"></p><p id="key-count">0/4 keys</p><button id="ending-return" type="button">return to chapter selection</button></div><div id="touch-controls" aria-hidden="true"><div class="touch-half"><button data-input="left" aria-label="Move left">&#x2039;</button><button data-input="right" aria-label="Move right">&#x203A;</button></div><div class="touch-half"><button data-input="jump" aria-label="Jump">&#x25B3;</button><button data-input="action" aria-label="Action">E</button><button data-input="portal" aria-label="Use portal">Q</button></div></div>`
-document.querySelector('#prelude')?.remove()
+app.innerHTML = `<section id="prelude" aria-labelledby="prelude-title" role="button" tabindex="0"><div id="prelude-content">${locket()}<p>I remember nothing. Only that something is owed.</p><h1 id="prelude-title">What the Snow Remembers</h1><span id="prelude-continue">click to continue</span></div></section><div id="start"><div id="start-content"><button id="start-button" type="button">enter</button><button id="guide-button" type="button">how to play</button><div id="chapter-select" aria-label="Select chapter"><button data-chapter="spring" type="button">spring</button><button data-chapter="summer" type="button">summer</button><button data-chapter="autumn" type="button">autumn</button><button data-chapter="winter" type="button">winter</button></div></div><section id="guide" aria-labelledby="guide-title" aria-hidden="true"></section></div><div id="key-hud" aria-live="polite">${locket()}</div><div id="timer-hud" aria-label="Run time">00:00</div><div id="death" aria-hidden="true"></div><div id="pause"><button data-pause="resume" type="button">resume</button><button data-pause="restart" type="button">restart chapter</button></div><div id="ending" aria-live="polite">${locket()}<h1>What the Snow Remembers</h1><p id="ending-message"></p><p id="ending-message-detail"></p><p id="key-count">0/4 keys</p><button id="ending-return" type="button">return to chapter selection</button></div><div id="touch-controls" aria-hidden="true"><div class="touch-half"><button data-input="left" aria-label="Move left">&#x2039;</button><button data-input="right" aria-label="Move right">&#x203A;</button></div><div class="touch-half"><button data-input="jump" aria-label="Jump">&#x25B3;</button><button data-input="action" aria-label="Action">E</button><button data-input="portal" aria-label="Use portal">Q</button></div></div>`
+const prelude = document.querySelector('#prelude')
+const dismissPrelude = () => {
+  if (prelude.classList.contains('hidden')) return
+  prelude.classList.add('hidden')
+  prelude.addEventListener('transitionend', () => prelude.remove(), { once: true })
+  document.querySelector('#start-button').focus()
+}
+prelude.addEventListener('click', dismissPrelude)
+prelude.addEventListener('keydown', (event) => {
+  if (event.code !== 'Enter' && event.code !== 'Space') return
+  event.preventDefault()
+  dismissPrelude()
+})
 const guide = document.querySelector('#guide')
 guide.remove()
 app.append(guide)
@@ -28,22 +40,6 @@ actionCommand.innerHTML = '<kbd>C</kbd><h3>Action</h3><p>Carry blocks and pull l
 document.querySelector('#touch-controls [data-input="action"]').textContent = 'C'
 guide.setAttribute('aria-label', 'How to play')
 guide.querySelector('#guide-title')?.remove()
-const viverseAvatarSlot = document.createElement('div')
-viverseAvatarSlot.id = 'viverse-avatar-slot'
-const viverseConnectButton = document.createElement('button')
-viverseConnectButton.type = 'button'
-viverseConnectButton.className = 'viverse-avatar-button'
-viverseConnectButton.textContent = 'use my VIVERSE avatar'
-const viverseAvatarStatus = document.createElement('p')
-viverseAvatarStatus.id = 'viverse-avatar-status'
-viverseAvatarStatus.setAttribute('aria-live', 'polite')
-const viverseDisconnectButton = document.createElement('button')
-viverseDisconnectButton.type = 'button'
-viverseDisconnectButton.className = 'viverse-avatar-button'
-viverseDisconnectButton.textContent = 'use default traveler'
-viverseDisconnectButton.hidden = true
-viverseAvatarSlot.append(viverseConnectButton, viverseAvatarStatus, viverseDisconnectButton)
-document.querySelector('#guide-button').before(viverseAvatarSlot)
 const triggerCard = guide.querySelector('.guide-mechanics article:nth-child(2)')
 triggerCard.querySelector('h3').textContent = 'One-Shot And Infinity'
 triggerCard.querySelector('p').textContent = 'A numbered plate fires its remaining uses, then locks. An infinity plate can be reset by moving the block off and back on.'
@@ -163,43 +159,8 @@ renderer.domElement.addEventListener('mousedown', () => renderer.domElement.focu
 const input = new Input(renderer.domElement, document.querySelector('#touch-controls'))
 const audio = new Audio()
 const player = new Player(scene, input, audio, spring.spawn)
-const setViverseAvatarStatus = (message = '') => { viverseAvatarStatus.textContent = message }
-const setViverseAvatarConnected = (connected) => {
-  viverseDisconnectButton.hidden = !connected
-  viverseConnectButton.hidden = connected
-}
-viverseDisconnectButton.addEventListener('click', () => {
-  player.rig.useDefaultTraveler()
-  setViverseAvatarConnected(false)
-  setViverseAvatarStatus('Using the default traveler.')
-  renderer.domElement.focus()
-})
-async function applyViverseAvatar() {
-  setViverseAvatarStatus('Loading your VIVERSE avatar...')
-  try {
-    const profile = await viverseSession.fetchProfile()
-    const avatarUrl = viverseSession.getActiveAvatarUrl(profile)
-    if (!avatarUrl) {
-      setViverseAvatarStatus('Your VIVERSE account has no avatar set. The default traveler remains active.')
-      return
-    }
-    await player.rig.setAvatar(avatarUrl)
-    setViverseAvatarConnected(true)
-    setViverseAvatarStatus('VIVERSE avatar connected.')
-  } catch (error) {
-    console.warn('Failed to load the VIVERSE avatar.', error)
-    setViverseAvatarStatus('VIVERSE blocked the avatar download. The default traveler remains active.')
-  }
-}
-viverseConnectButton.addEventListener('click', async () => {
-  setViverseAvatarStatus('Connecting to VIVERSE...')
-  const auth = await viverseSession.ensureLogin({ reason: 'avatar' })
-  if (!auth) return // page is redirecting to VIVERSE login
-  await applyViverseAvatar()
-  renderer.domElement.focus()
-})
 viverseSession.resumePending().then((pending) => {
-  if (pending?.reason === 'avatar') applyViverseAvatar()
+  if (pending?.reason === 'avatar') applyViverseAvatar().catch((error) => console.warn('Failed to resume the VIVERSE avatar.', error))
   else if (pending?.reason === 'leaderboard') submitRunToLeaderboards(pending)
 })
 const camera = new Camera(player)
@@ -218,7 +179,26 @@ let portalPanActive = false
 let ending = false
 let endingElapsed = 0
 let runStartTime = performance.now()
+let pauseStartedAt = null
+let pausedDuration = 0
+const chapterEntryTimes = new Map()
 let visitedSeasons = new Set()
+const chapterOrder = [spring, summer, autumn, winter]
+let highestUnlockedChapter = 0
+const timerHud = document.querySelector('#timer-hud')
+const formatElapsedTime = (milliseconds) => {
+  const totalSeconds = Math.floor(milliseconds / 1000)
+  const minutes = Math.floor(totalSeconds / 60)
+  const seconds = totalSeconds % 60
+  return `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`
+}
+const elapsedRunTime = () => performance.now() - runStartTime - pausedDuration - (pauseStartedAt === null ? 0 : performance.now() - pauseStartedAt)
+const updateTimerHud = () => { timerHud.textContent = formatElapsedTime(elapsedRunTime()) }
+const resetElapsedRunTime = (elapsed = 0) => {
+  pausedDuration = 0
+  runStartTime = (pauseStartedAt ?? performance.now()) - elapsed
+  updateTimerHud()
+}
 const fallDeathY = -8
 const autumnFallDeathY = -16
 const endingDuration = 3
@@ -382,6 +362,7 @@ function restartChapter() {
   audio.death()
   camera.shake()
   document.querySelector('#death').classList.add('visible')
+  resetElapsedRunTime(chapterEntryTimes.get(chapterData) || 0)
   loadChapter(chapterData)
   setTimeout(() => document.querySelector('#death').classList.remove('visible'), 650)
 }
@@ -427,7 +408,7 @@ function finish() {
   const allChapters = visitedSeasons.size === 4
   leaderboardPanel.hidden = !allChapters
   if (allChapters) {
-    lastRunSummary = { elapsedSeconds: (performance.now() - runStartTime) / 1000, allKeys: keyCount === 4 }
+    lastRunSummary = { elapsedSeconds: elapsedRunTime() / 1000, allKeys: keyCount === 4 }
     leaderboardSubmitButton.hidden = false
     leaderboardStatus.textContent = ''
     leaderboardList.innerHTML = ''
@@ -442,7 +423,17 @@ function returnToChapterSelection() {
   chapterSelect.querySelector('button')?.focus()
 }
 
-function setPaused(value) { paused = value; document.querySelector('#pause').classList.toggle('visible', paused); if (!paused) renderer.domElement.focus() }
+function setPaused(value) {
+  if (paused === value) return
+  paused = value
+  if (paused) pauseStartedAt = performance.now()
+  else {
+    pausedDuration += performance.now() - pauseStartedAt
+    pauseStartedAt = null
+    renderer.domElement.focus()
+  }
+  document.querySelector('#pause').classList.toggle('visible', paused)
+}
 addEventListener('keydown', (event) => {
   if (event.code !== 'Escape' || finished || ending) return
   event.preventDefault()
@@ -469,6 +460,7 @@ const game = new Game({
   scene,
   camera,
   update: (dt) => {
+    updateTimerHud()
     if (finished || paused) return
     input.update()
     if (ending) {
@@ -524,23 +516,33 @@ const game = new Game({
     if (input.portalPressed && chapter.reachedExit(player)) {
       bankCurrentKey()
       chapterStates.set(chapterData, chapter.save())
-      if (chapterData === spring) loadChapter(summer)
-      else if (chapterData === summer) loadChapter(autumn)
-      else if (chapterData === autumn) loadChapter(winter)
+      const currentChapterIndex = chapterOrder.indexOf(chapterData)
+      if (currentChapterIndex < chapterOrder.length - 1) {
+        highestUnlockedChapter = Math.max(highestUnlockedChapter, currentChapterIndex + 1)
+        updateChapterUnlocks()
+        const nextChapter = chapterOrder[currentChapterIndex + 1]
+        chapterEntryTimes.set(nextChapter, elapsedRunTime())
+        loadChapter(nextChapter)
+      }
       else beginEnding()
     }
     camera.update(dt)
   },
 })
 async function startGame(nextChapter = spring) {
+  if (chapterOrder.indexOf(nextChapter) > highestUnlockedChapter) return
   finished = false
   ending = false
-  runStartTime = performance.now()
   visitedSeasons = new Set()
   if (nextChapter === spring && !hasSeenSpringIntro() && !springIntroActive) {
     const shouldStart = await showSpringIntro()
     if (!shouldStart) return
   }
+  if (paused) setPaused(false)
+  pauseStartedAt = null
+  chapterEntryTimes.clear()
+  chapterEntryTimes.set(nextChapter, 0)
+  resetElapsedRunTime()
   if (nextChapter !== chapterData) loadChapter(nextChapter)
   if (springIntroActive) {
     markSpringIntroSeen()
@@ -555,7 +557,7 @@ async function startGame(nextChapter = spring) {
 }
 
 const chapterSelect = document.querySelector('#chapter-select')
-chapterSelect.innerHTML = '<button class="chapter-card chapter-spring" data-chapter="spring" type="button"><span class="chapter-number">01</span><span class="chapter-season">spring</span><span class="chapter-route">the floodline</span></button><button class="chapter-card chapter-summer" data-chapter="summer" type="button"><span class="chapter-number">02</span><span class="chapter-season">summer</span><span class="chapter-route">the outskirts</span></button><button class="chapter-card chapter-autumn" data-chapter="autumn" type="button"><span class="chapter-number">03</span><span class="chapter-season">autumn</span><span class="chapter-route">the works</span></button><button class="chapter-card chapter-winter" data-chapter="winter" type="button"><span class="chapter-number">04</span><span class="chapter-season">winter</span><span class="chapter-route">the core</span></button>'
+chapterSelect.innerHTML = '<button class="chapter-card chapter-spring" data-chapter="spring" type="button"><span class="chapter-number">01</span><span class="chapter-season">spring</span><span class="chapter-route">home falls behind</span></button><button class="chapter-card chapter-summer" data-chapter="summer" type="button"><span class="chapter-number">02</span><span class="chapter-season">summer</span><span class="chapter-route">two shadows linger</span></button><button class="chapter-card chapter-autumn" data-chapter="autumn" type="button"><span class="chapter-number">03</span><span class="chapter-season">autumn</span><span class="chapter-route">one shadow remains</span></button><button class="chapter-card chapter-winter" data-chapter="winter" type="button"><span class="chapter-number">04</span><span class="chapter-season">winter</span><span class="chapter-route">snow remembers home</span></button>'
 chapterSelect.querySelectorAll('.chapter-card').forEach((card) => {
   const thumbnail = document.createElement('img')
   thumbnail.className = 'chapter-thumbnail'
@@ -564,9 +566,19 @@ chapterSelect.querySelectorAll('.chapter-card').forEach((card) => {
   thumbnail.setAttribute('aria-hidden', 'true')
   card.prepend(thumbnail)
 })
-const chapterSelectionTitle = document.createElement('p')
-chapterSelectionTitle.id = 'chapter-selection-title'
-chapterSelectionTitle.textContent = 'choose a chapter'
+const updateChapterUnlocks = () => {
+  chapterSelect.querySelectorAll('.chapter-card').forEach((card, index) => {
+    const unlocked = index <= highestUnlockedChapter
+    card.disabled = !unlocked
+    card.classList.toggle('locked', !unlocked)
+    card.setAttribute('aria-label', unlocked ? card.textContent.replace(/\s+/g, ' ').trim() : `Chapter ${index + 1} locked`)
+  })
+}
+updateChapterUnlocks()
+const viverseAvatarButton = document.createElement('button')
+viverseAvatarButton.id = 'viverse-avatar-button'
+viverseAvatarButton.type = 'button'
+viverseAvatarButton.textContent = 'use my VIVERSE avatar'
 const chapterBackButton = document.createElement('button')
 chapterBackButton.id = 'chapter-back'
 chapterBackButton.type = 'button'
@@ -575,7 +587,7 @@ const chapterRestartButton = document.createElement('button')
 chapterRestartButton.id = 'chapter-restart'
 chapterRestartButton.type = 'button'
 chapterRestartButton.textContent = 'restart the journey'
-chapterSelect.before(chapterSelectionTitle)
+document.querySelector('#start-button').after(viverseAvatarButton)
 chapterSelect.after(chapterBackButton)
 chapterBackButton.after(chapterRestartButton)
 const endingRestartButton = document.createElement('button')
@@ -630,7 +642,13 @@ const restartJourney = () => {
   finished = false
   ending = false
   runStartTime = performance.now()
+  pauseStartedAt = null
+  pausedDuration = 0
+  chapterEntryTimes.clear()
+  chapterEntryTimes.set(spring, 0)
   visitedSeasons = new Set()
+  highestUnlockedChapter = 0
+  updateChapterUnlocks()
   loadChapter(spring)
   updateKeyHud()
   document.querySelector('#ending').classList.remove('visible', 'cinematic', 'story-visible')
@@ -641,6 +659,36 @@ const restartJourney = () => {
 }
 document.querySelector('#start-button').addEventListener('click', () => document.querySelector('#start').classList.add('chapter-selection'))
 document.querySelector('#ending-return').addEventListener('click', returnToChapterSelection)
+const setViverseAvatarButtonState = (connected) => {
+  viverseAvatarButton.textContent = connected ? 'use default traveler' : 'use my VIVERSE avatar'
+}
+async function applyViverseAvatar() {
+  const profile = await viverseSession.fetchProfile()
+  const avatarUrl = viverseSession.getActiveAvatarUrl(profile)
+  if (!avatarUrl) throw new Error('Your VIVERSE account has no avatar set.')
+  await player.rig.setAvatar(avatarUrl)
+  setViverseAvatarButtonState(true)
+}
+viverseAvatarButton.addEventListener('click', async () => {
+  if (player.rig.avatar) {
+    player.rig.useDefaultTraveler()
+    setViverseAvatarButtonState(false)
+    renderer.domElement.focus()
+    return
+  }
+  viverseAvatarButton.disabled = true
+  viverseAvatarButton.textContent = 'connecting to VIVERSE...'
+  try {
+    const auth = await viverseSession.ensureLogin({ reason: 'avatar' })
+    if (auth) await applyViverseAvatar()
+  } catch (error) {
+    console.warn('Failed to load the VIVERSE avatar.', error)
+    setViverseAvatarButtonState(false)
+  } finally {
+    viverseAvatarButton.disabled = false
+    renderer.domElement.focus()
+  }
+})
 chapterBackButton.addEventListener('click', () => document.querySelector('#start').classList.remove('chapter-selection'))
 chapterRestartButton.addEventListener('click', () => openRestartDialog(chapterRestartButton))
 endingRestartButton.addEventListener('click', () => openRestartDialog(endingRestartButton))
