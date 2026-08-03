@@ -544,6 +544,11 @@ async function startGame(nextChapter = spring) {
   chapterEntryTimes.set(nextChapter, 0)
   resetElapsedRunTime()
   if (nextChapter !== chapterData) loadChapter(nextChapter)
+  // loadChapter() is what normally records a season as visited, but it's skipped above when
+  // nextChapter is already the loaded chapterData (true on a fresh page load's first "enter",
+  // since chapterData starts as spring) — without this, a genuine full run would end with only
+  // 3 of 4 seasons visited and the leaderboard panel would never appear.
+  if (nextChapter.key?.id) visitedSeasons.add(nextChapter.key.id)
   if (springIntroActive) {
     markSpringIntroSeen()
     hideSpringIntro()
@@ -740,6 +745,7 @@ if (import.meta.env.DEV) {
     get checkpointIndex() { return checkpointIndex },
     get ending() { return ending },
     get finished() { return finished },
+    get visitedSeasons() { return [...visitedSeasons] },
     // Testing/playtest-only shortcut to reach the true ending screen (and its leaderboard panel)
     // without playing all 4 chapters — mirrors what a real full run leaves in place.
     forceFinish() { visitedSeasons = new Set(['spring', 'summer', 'autumn', 'winter']); finish() },
