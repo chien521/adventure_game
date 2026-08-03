@@ -802,11 +802,5 @@ if (import.meta.env.DEV) {
     // Testing/playtest-only shortcut to reach the true ending screen (and its leaderboard panel)
     // without playing all 4 chapters — mirrors what a real full run leaves in place.
     forceFinish() { visitedSeasons = new Set(['spring', 'summer', 'autumn', 'winter']); finish() },
-    loadThumbnailScene(season, position) {
-      loadChapter(chapters[season], position)
-      document.querySelector('#prelude')?.remove()
-      document.querySelector('#start').classList.add('hidden')
-      game.start()
-    },
   }
 }
