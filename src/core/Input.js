@@ -16,6 +16,10 @@ export class Input {
     touchControls.querySelectorAll('button[data-input]').forEach((button) => {
       const action = button.dataset.input
       const set = (active) => active ? this.touch.add(action) : this.touch.delete(action)
+      const stopNativeGesture = (event) => event.preventDefault()
+      button.addEventListener('contextmenu', stopNativeGesture)
+      button.addEventListener('touchstart', stopNativeGesture, { passive: false })
+      button.addEventListener('touchmove', stopNativeGesture, { passive: false })
       button.addEventListener('pointerdown', (event) => { event.preventDefault(); button.setPointerCapture(event.pointerId); set(true) })
       button.addEventListener('pointerup', () => set(false))
       button.addEventListener('pointercancel', () => set(false))

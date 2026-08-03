@@ -173,9 +173,9 @@ canvas { position: fixed; inset: 0; z-index: 0; }
 .records-list li { border-bottom: 1px solid #2c3f45; padding: .2rem 0; }
 .records-list .records-empty { color: #72878b; text-align: center; }
 #ending.intro #spring-intro-start, #ending.intro #ending-restart { opacity: 1; pointer-events: auto; transition: none; }
-#touch-controls { display: none; position: fixed; z-index: 3; inset: auto 0 1rem; justify-content: space-between; padding: 0 1rem; pointer-events: none; }
+#touch-controls { display: none; position: fixed; z-index: 3; inset: auto 0 max(1rem, env(safe-area-inset-bottom)); justify-content: space-between; padding: 0 max(1rem, env(safe-area-inset-right)) 0 max(1rem, env(safe-area-inset-left)); pointer-events: none; touch-action: none; user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; -webkit-tap-highlight-color: transparent; }
 .touch-half { display: flex; gap: .55rem; pointer-events: auto; }
-.touch-half button { width: 3.5rem; height: 3.5rem; border: 1px solid #8eaeb7; border-radius: 50%; color: #e7f1f0; background: #152832aa; font: 600 1.1rem/1 monospace; touch-action: none; }
+.touch-half button { width: 3.5rem; height: 3.5rem; border: 1px solid #8eaeb7; border-radius: 50%; color: #e7f1f0; background: #152832aa; font: 600 1.1rem/1 monospace; touch-action: none; user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; -webkit-tap-highlight-color: transparent; }
 .touch-half button:active { color: #102027; background: #c2dde0; }
 /* Warm limestone palette for menus and reading surfaces. */
 body, #start, #guide, #records { background: #d8d0c2; }
@@ -198,6 +198,14 @@ body, #start, #guide, #records { background: #d8d0c2; }
 #ending:not(.cinematic) p, #ending #key-count { color: #68706b; }
 
 @media (hover: none), (pointer: coarse) { #touch-controls { display: flex; } }
+@media (hover: none), (pointer: coarse) {
+  body { overscroll-behavior: none; }
+}
+@media (hover: none) and (pointer: coarse) and (orientation: portrait) {
+  #touch-controls { bottom: max(1.25rem, env(safe-area-inset-bottom)); }
+  .touch-half { gap: .4rem; }
+  .touch-half button { width: clamp(3.25rem, 14vw, 3.8rem); height: clamp(3.25rem, 14vw, 3.8rem); }
+}
 @media (max-width: 700px) {
 	#start.chapter-selection #start-content { width: min(34rem, calc(100vw - 2rem)); gap: .85rem; }
 	#chapter-select { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .55rem; }

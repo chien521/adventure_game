@@ -45,14 +45,21 @@ export class Camera {
     }
   }
 
-  resize(width, height) { this.camera.aspect = width / height; this.camera.updateProjectionMatrix() }
+  resize(width, height) {
+    this.camera.aspect = width / height
+    this.camera.updateProjectionMatrix()
+  }
 
   update(dt) {
     const zone = this.zones.find((z) => this.player.body.x >= z.xMin && this.player.body.x <= z.xMax)
     const targetX = this.player.body.x + this.player.facing * 2.2
     const targetY = zone?.camY ?? (this.player.body.y < 0 ? this.player.body.y + 1.4 : Math.max(2.6, this.player.body.y + 1.4))
     const targetZ = zone?.camZ ?? 15
-    const targetFov = zone?.fov ?? DEFAULT_FOV
+    const landscapeAspect = 16 / 9
+    const baseFov = zone?.fov ?? DEFAULT_FOV
+    const targetFov = this.camera.aspect < landscapeAspect
+      ? Math.min(70, THREE.MathUtils.radToDeg(2 * Math.atan(Math.tan(THREE.MathUtils.degToRad(baseFov) / 2) * landscapeAspect / this.camera.aspect)))
+      : baseFov
     const factor = 1 - Math.exp(-dt * 4)
     const portalPanFactor = 1 - Math.exp(-dt * 1.3)
     let panFinished = false
