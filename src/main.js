@@ -11,6 +11,7 @@ import { spring } from './chapters/spring.js'
 import { summer } from './chapters/summer.js'
 import { autumn } from './chapters/autumn.js'
 import { winter } from './chapters/winter.js'
+import { viverseSession } from './viverse/ViverseSession.js'
 
 const app = document.querySelector('#app')
 app.innerHTML = '<div id="start"><div id="start-content"><button id="start-button" type="button">enter</button><button id="guide-button" type="button">how to play</button><div id="chapter-select" aria-label="Select chapter"><button data-chapter="spring" type="button">spring</button><button data-chapter="summer" type="button">summer</button><button data-chapter="autumn" type="button">autumn</button><button data-chapter="winter" type="button">winter</button></div></div><section id="guide" aria-labelledby="guide-title" aria-hidden="true"><div id="guide-content"><p class="guide-kicker">UNDERTOW FIELD NOTES</p><h1 id="guide-title">Find a way through.</h1><div id="guide-grid"><article><kbd>A</kbd><kbd>D</kbd><h2>Move</h2><p>Run, jump, and use the terrain to find a route.</p></article><article><kbd>W</kbd><h2>Jump</h2><p>Standing on a carried block readies one extra jump.</p></article><article><kbd>E</kbd><h2>Act</h2><p>Carry blocks, pull levers, and place blocks on red triggers.</p></article><article><kbd>Q</kbd><h2>Return</h2><p>Use a lavender portal when you are close enough to it.</p></article><article><span class="guide-mark">KEY</span><h2>Collect</h2><p>Optional keys persist once you leave a chapter through its exit.</p></article><article><span class="guide-mark">CHECKPOINT</span><h2>Recover</h2><p>Passing a checkpoint changes where a fall sends you back.</p></article></div><button id="guide-back" type="button">back</button></div></section></div><div id="key-hud" aria-live="polite">keys <span id="key-hud-count">0</span></div><div id="death" aria-hidden="true"></div><div id="pause"><button data-pause="resume" type="button">resume</button><button data-pause="restart" type="button">restart chapter</button></div><div id="ending" aria-live="polite"><h1>UNDERTOW</h1><p id="ending-message">thank you for playing.</p><p id="key-count">0/4 keys</p></div><div id="touch-controls" aria-hidden="true"><div class="touch-half"><button data-input="left" aria-label="Move left">&#x2039;</button><button data-input="right" aria-label="Move right">&#x203a;</button></div><div class="touch-half"><button data-input="jump" aria-label="Jump">A</button><button data-input="action" aria-label="Action">B</button></div></div>'
@@ -29,6 +30,10 @@ guide.setAttribute('aria-label', 'How to play')
 guide.querySelector('#guide-title')?.remove()
 const viverseAvatarSlot = document.createElement('div')
 viverseAvatarSlot.id = 'viverse-avatar-slot'
+const viverseConnectButton = document.createElement('button')
+viverseConnectButton.type = 'button'
+viverseConnectButton.className = 'viverse-avatar-button'
+viverseConnectButton.textContent = 'use my VIVERSE avatar'
 const viverseAvatarStatus = document.createElement('p')
 viverseAvatarStatus.id = 'viverse-avatar-status'
 viverseAvatarStatus.setAttribute('aria-live', 'polite')
@@ -37,7 +42,7 @@ viverseDisconnectButton.type = 'button'
 viverseDisconnectButton.className = 'viverse-avatar-button'
 viverseDisconnectButton.textContent = 'use default traveler'
 viverseDisconnectButton.hidden = true
-viverseAvatarSlot.append(viverseAvatarStatus, viverseDisconnectButton)
+viverseAvatarSlot.append(viverseConnectButton, viverseAvatarStatus, viverseDisconnectButton)
 document.querySelector('#guide-button').before(viverseAvatarSlot)
 const triggerCard = guide.querySelector('.guide-mechanics article:nth-child(2)')
 triggerCard.querySelector('h3').textContent = 'One-Shot And Infinity'
@@ -158,66 +163,45 @@ renderer.domElement.addEventListener('mousedown', () => renderer.domElement.focu
 const input = new Input(renderer.domElement, document.querySelector('#touch-controls'))
 const audio = new Audio()
 const player = new Player(scene, input, audio, spring.spawn)
-let avatarPickerOpen = false
 const setViverseAvatarStatus = (message = '') => { viverseAvatarStatus.textContent = message }
-const setViverseAvatarConnected = (connected) => { viverseDisconnectButton.hidden = !connected }
+const setViverseAvatarConnected = (connected) => {
+  viverseDisconnectButton.hidden = !connected
+  viverseConnectButton.hidden = connected
+}
 viverseDisconnectButton.addEventListener('click', () => {
   player.rig.useDefaultTraveler()
   setViverseAvatarConnected(false)
   setViverseAvatarStatus('Using the default traveler.')
   renderer.domElement.focus()
 })
-addEventListener('viverse-me:open', () => {
-  avatarPickerOpen = true
-  input.clear()
-})
-addEventListener('viverse-me:close', () => {
-  avatarPickerOpen = false
-  input.clear()
-  renderer.domElement.focus()
-})
-addEventListener('viverse-me:authorization-denied', () => {
-  setViverseAvatarStatus('VIVERSE Avatar needs this website origin added to your SDK settings.')
-})
-const resolveViverseAvatarUrl = (url) => {
-  const avatarUrl = new URL(url)
-  if (avatarUrl.hostname === 'me-stage.viverse.com' && avatarUrl.pathname.endsWith('/default-avatar')) {
-    avatarUrl.searchParams.set('origin', location.origin)
-  }
-  return avatarUrl.href
-}
-const avatarLoadUrl = (url) => {
-  const resolvedUrl = resolveViverseAvatarUrl(url)
-  return import.meta.env.DEV ? `/viverse-avatar?url=${encodeURIComponent(resolvedUrl)}` : resolvedUrl
-}
-addEventListener('viverse-me:avatar-selected', async (event) => {
-  const avatar = event.detail?.avatar
-  if (!avatar?.vrmUrl) {
-    setViverseAvatarStatus('The selected avatar could not be loaded. The default traveler remains active.')
-    return
-  }
-  avatarPickerOpen = false
+async function applyViverseAvatar() {
   setViverseAvatarStatus('Loading your VIVERSE avatar...')
   try {
-    await player.rig.setAvatar(avatarLoadUrl(avatar.vrmUrl))
+    const profile = await viverseSession.fetchProfile()
+    const avatarUrl = viverseSession.getActiveAvatarUrl(profile)
+    if (!avatarUrl) {
+      setViverseAvatarStatus('Your VIVERSE account has no avatar set. The default traveler remains active.')
+      return
+    }
+    await player.rig.setAvatar(avatarUrl)
     setViverseAvatarConnected(true)
-    setViverseAvatarStatus('VIVERSE avatar selected.')
+    setViverseAvatarStatus('VIVERSE avatar connected.')
   } catch (error) {
-    console.warn('Failed to load selected VIVERSE avatar.', error)
-    setViverseAvatarStatus('VIVERSE blocked the selected avatar download. The default traveler remains active.')
+    console.warn('Failed to load the VIVERSE avatar.', error)
+    setViverseAvatarStatus('VIVERSE blocked the avatar download. The default traveler remains active.')
   }
+}
+viverseConnectButton.addEventListener('click', async () => {
+  setViverseAvatarStatus('Connecting to VIVERSE...')
+  const auth = await viverseSession.ensureLogin({ reason: 'avatar' })
+  if (!auth) return // page is redirecting to VIVERSE login
+  await applyViverseAvatar()
+  renderer.domElement.focus()
 })
-const viverseAvatarScript = document.createElement('script')
-viverseAvatarScript.src = 'https://me-stage.viverse.com/sdk.js'
-viverseAvatarScript.async = true
-viverseAvatarScript.dataset.ac3Mode = 'sdk-happy-path'
-viverseAvatarScript.dataset.ac3Target = '#viverse-avatar-slot'
-viverseAvatarScript.dataset.ac3PartnerId = 'partner_44906eba1fd10dcd'
-viverseAvatarScript.dataset.ac3Label = 'connect VIVERSE avatar'
-viverseAvatarScript.dataset.ac3ButtonClass = 'viverse-avatar-button'
-viverseAvatarScript.dataset.ac3HpShowLibraryButton = 'true'
-viverseAvatarScript.addEventListener('error', () => setViverseAvatarStatus('VIVERSE Avatar is unavailable right now.'))
-document.head.append(viverseAvatarScript)
+viverseSession.resumePending().then((pending) => {
+  if (pending?.reason === 'avatar') applyViverseAvatar()
+  else if (pending?.reason === 'leaderboard') submitRunToLeaderboards(pending)
+})
 const camera = new Camera(player)
 const loader = new ChapterLoader(scene)
 const collectedKeys = new Set()
@@ -233,6 +217,8 @@ let paused = false
 let portalPanActive = false
 let ending = false
 let endingElapsed = 0
+let runStartTime = performance.now()
+let visitedSeasons = new Set()
 const fallDeathY = -8
 const autumnFallDeathY = -16
 const endingDuration = 3
@@ -328,6 +314,7 @@ scene.add(lamp)
 
 function loadChapter(nextChapter, entryPosition = nextChapter.spawn, restoreState = false) {
   chapterData = nextChapter
+  if (chapterData.key?.id) visitedSeasons.add(chapterData.key.id)
   chapter = loader.load(chapterData, player, input, audio, camera, collectedKeys)
   camera.setZones(chapterData.zones || [])
   if (restoreState && chapterStates.has(nextChapter)) chapter.restore(chapterStates.get(nextChapter))
@@ -399,6 +386,30 @@ function restartChapter() {
   setTimeout(() => document.querySelector('#death').classList.remove('visible'), 650)
 }
 
+const ALL_KEYS_LEADERBOARD = import.meta.env.VITE_VIVERSE_LEADERBOARD_ALL_KEYS
+const ANY_COMPLETION_LEADERBOARD = import.meta.env.VITE_VIVERSE_LEADERBOARD_ANY_COMPLETION
+
+async function submitRunToLeaderboards({ elapsedSeconds, allKeys }) {
+  leaderboardSubmitButton.hidden = true
+  leaderboardStatus.textContent = 'Connecting to VIVERSE...'
+  const auth = await viverseSession.ensureLogin({ reason: 'leaderboard', elapsedSeconds, allKeys })
+  if (!auth) return // page is redirecting to VIVERSE login
+  leaderboardStatus.textContent = 'Submitting your run...'
+  const value = Math.round(elapsedSeconds)
+  const uploads = [viverseSession.submitScore(ANY_COMPLETION_LEADERBOARD, value)]
+  if (allKeys) uploads.push(viverseSession.submitScore(ALL_KEYS_LEADERBOARD, value))
+  const results = await Promise.all(uploads)
+  if (!results.every(Boolean)) {
+    leaderboardStatus.textContent = 'Could not submit your run right now.'
+    leaderboardSubmitButton.hidden = false
+    return
+  }
+  leaderboardStatus.textContent = 'Run submitted.'
+  const rows = await viverseSession.fetchLeaderboard(allKeys ? ALL_KEYS_LEADERBOARD : ANY_COMPLETION_LEADERBOARD)
+  leaderboardList.innerHTML = rows.map((row) => `<li>#${row.rank} ${row.name || row.displayName || 'VIVERSE Player'} — ${row.value}s</li>`).join('')
+}
+
+let lastRunSummary = null
 function finish() {
   finished = true
   const endingElement = document.querySelector('#ending')
@@ -412,6 +423,15 @@ function finish() {
   updateKeyHud()
   endingElement.classList.add('visible')
   requestAnimationFrame(() => endingElement.classList.add('story-visible'))
+
+  const allChapters = visitedSeasons.size === 4
+  leaderboardPanel.hidden = !allChapters
+  if (allChapters) {
+    lastRunSummary = { elapsedSeconds: (performance.now() - runStartTime) / 1000, allKeys: keyCount === 4 }
+    leaderboardSubmitButton.hidden = false
+    leaderboardStatus.textContent = ''
+    leaderboardList.innerHTML = ''
+  }
 }
 
 function returnToChapterSelection() {
@@ -449,7 +469,7 @@ const game = new Game({
   scene,
   camera,
   update: (dt) => {
-    if (finished || paused || avatarPickerOpen) return
+    if (finished || paused) return
     input.update()
     if (ending) {
       endingElapsed += dt
@@ -515,6 +535,8 @@ const game = new Game({
 async function startGame(nextChapter = spring) {
   finished = false
   ending = false
+  runStartTime = performance.now()
+  visitedSeasons = new Set()
   if (nextChapter === spring && !hasSeenSpringIntro() && !springIntroActive) {
     const shouldStart = await showSpringIntro()
     if (!shouldStart) return
@@ -561,6 +583,24 @@ endingRestartButton.id = 'ending-restart'
 endingRestartButton.type = 'button'
 endingRestartButton.textContent = 'restart the journey'
 document.querySelector('#ending-return').after(endingRestartButton)
+const leaderboardPanel = document.createElement('div')
+leaderboardPanel.id = 'leaderboard-panel'
+leaderboardPanel.hidden = true
+const leaderboardSubmitButton = document.createElement('button')
+leaderboardSubmitButton.id = 'leaderboard-submit'
+leaderboardSubmitButton.type = 'button'
+leaderboardSubmitButton.textContent = 'submit to VIVERSE leaderboard'
+const leaderboardStatus = document.createElement('p')
+leaderboardStatus.id = 'leaderboard-status'
+leaderboardStatus.setAttribute('aria-live', 'polite')
+const leaderboardList = document.createElement('ol')
+leaderboardList.id = 'leaderboard-list'
+leaderboardPanel.append(leaderboardSubmitButton, leaderboardStatus, leaderboardList)
+endingRestartButton.after(leaderboardPanel)
+leaderboardSubmitButton.addEventListener('click', () => {
+  if (!lastRunSummary) return
+  submitRunToLeaderboards(lastRunSummary)
+})
 const restartDialog = document.createElement('section')
 restartDialog.id = 'restart-dialog'
 restartDialog.setAttribute('role', 'dialog')
@@ -589,6 +629,8 @@ const restartJourney = () => {
   catch { }
   finished = false
   ending = false
+  runStartTime = performance.now()
+  visitedSeasons = new Set()
   loadChapter(spring)
   updateKeyHud()
   document.querySelector('#ending').classList.remove('visible', 'cinematic', 'story-visible')

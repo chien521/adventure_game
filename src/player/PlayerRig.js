@@ -8,6 +8,8 @@ export class PlayerRig {
   constructor() {
     this.root = new THREE.Group()
     this.avatar = null
+    this.avatarBones = null
+    this.avatarRestRotations = new Map()
     this.avatarRoot = new THREE.Group()
     this.modelRoot = new THREE.Group()
     this.mixer = null
@@ -112,7 +114,8 @@ export class PlayerRig {
     const size = bounds.getSize(new THREE.Vector3())
     if (size.y <= 0) throw new Error('The selected VIVERSE avatar has no visible height.')
 
-    const scale = 1.65 / size.y
+    // This changes only the mesh. Player.body remains the fixed collision hitbox.
+    const scale = 4 / size.y
     gltf.scene.scale.setScalar(scale)
     gltf.scene.updateMatrixWorld(true)
     const scaledBounds = new THREE.Box3().setFromObject(gltf.scene)
@@ -130,8 +133,59 @@ export class PlayerRig {
     this.avatarRoot.clear()
     this.avatarRoot.add(gltf.scene)
     this.avatar = vrm
+    this.avatarBones = this.getAvatarBones(vrm)
+    this.avatarRestRotations = new Map(Object.values(this.avatarBones)
+      .filter(Boolean)
+      .map((bone) => [bone, bone.quaternion.clone()]))
     this.fallback.visible = false
     this.modelRoot.visible = false
+  }
+
+  getAvatarBones(vrm) {
+    const bone = (name) => vrm.humanoid?.getNormalizedBoneNode(name) ?? null
+    return {
+      leftUpperArm: bone('leftUpperArm'),
+      rightUpperArm: bone('rightUpperArm'),
+      leftLowerArm: bone('leftLowerArm'),
+      rightLowerArm: bone('rightLowerArm'),
+      leftUpperLeg: bone('leftUpperLeg'),
+      rightUpperLeg: bone('rightUpperLeg'),
+      spine: bone('spine'),
+    }
+  }
+
+  rotateAvatarBone(bone, rotations) {
+    const rest = this.avatarRestRotations.get(bone)
+    if (!bone || !rest) return
+    bone.quaternion.copy(rest)
+    rotations.forEach(({ axis, angle, space = 'local' }) => {
+      const rotation = new THREE.Quaternion().setFromAxisAngle(axis, angle)
+      if (space === 'parent') bone.quaternion.premultiply(rotation)
+      else bone.quaternion.multiply(rotation)
+    })
+  }
+
+  poseAvatar(moving, grounded, verticalSpeed, time) {
+    const bones = this.avatarBones
+    if (!bones) return
+    const stride = Math.sin(time * 13) * moving
+    const airborne = !grounded
+    const armLift = airborne ? .2 : 0
+
+    // VRM avatars commonly arrive in an A/T-pose; lower the arms first, then swing them with movement.
+    this.rotateAvatarBone(bones.leftUpperArm, [
+      { axis: new THREE.Vector3(0, 0, 1), angle: 1.05 - armLift },
+      { axis: new THREE.Vector3(1, 0, 0), angle: -stride * .52, space: 'parent' },
+    ])
+    this.rotateAvatarBone(bones.rightUpperArm, [
+      { axis: new THREE.Vector3(0, 0, 1), angle: -1.05 + armLift },
+      { axis: new THREE.Vector3(1, 0, 0), angle: stride * .52, space: 'parent' },
+    ])
+    this.rotateAvatarBone(bones.leftLowerArm, [{ axis: new THREE.Vector3(1, 0, 0), angle: -.12 + Math.max(0, stride) * .22 }])
+    this.rotateAvatarBone(bones.rightLowerArm, [{ axis: new THREE.Vector3(1, 0, 0), angle: -.12 + Math.max(0, -stride) * .22 }])
+    this.rotateAvatarBone(bones.leftUpperLeg, [{ axis: new THREE.Vector3(1, 0, 0), angle: airborne ? -.3 : -stride * .45 }])
+    this.rotateAvatarBone(bones.rightUpperLeg, [{ axis: new THREE.Vector3(1, 0, 0), angle: airborne ? -.3 : stride * .45 }])
+    this.rotateAvatarBone(bones.spine, [{ axis: new THREE.Vector3(0, 0, 1), angle: airborne ? Math.sign(verticalSpeed) * -.08 : 0 }])
   }
 
   useDefaultTraveler() {
@@ -139,6 +193,8 @@ export class PlayerRig {
     this.avatarRoot.position.set(0, 0, 0)
     this.avatarRoot.rotation.set(0, 0, 0)
     this.avatar = null
+    this.avatarBones = null
+    this.avatarRestRotations.clear()
     this.modelRoot.visible = this.modelRoot.children.length > 0
     this.fallback.visible = !this.modelRoot.visible
   }
@@ -160,6 +216,7 @@ export class PlayerRig {
     if (this.avatar) {
       this.avatarRoot.rotation.y = facing > 0 ? -Math.PI / 2 : Math.PI / 2
       this.avatarRoot.position.y = idle
+      this.poseAvatar(moving, grounded, verticalSpeed, time)
       this.avatar.update(1 / 60)
     } else if (this.mixer) {
       this.modelRoot.rotation.y = facing > 0 ? Math.PI / 2 : -Math.PI / 2
