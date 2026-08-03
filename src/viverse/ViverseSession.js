@@ -68,6 +68,11 @@ export class ViverseSession {
   }
 
   async checkAuth() {
+    // The VIVERSE parent-iframe auth bridge doesn't reliably answer a second checkAuth() call
+    // within the same page session (observed as a hung promise + "unhandled methods:
+    // VIVERSE_SDK/checkAuth:ack" in the console). Reuse the first successful result instead of
+    // re-issuing the call once we already have a token.
+    if (this.auth?.access_token) return this.auth
     const ready = await this.ensureReady()
     if (!ready) return null
     try {
