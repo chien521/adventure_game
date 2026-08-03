@@ -1,4 +1,4 @@
-:root { color-scheme: dark; }
+:root { color-scheme: light; }
 
 body { margin: 0; overflow: hidden; background: #101820; }
 #app, canvas { display: block; width: 100vw; height: 100svh; }
@@ -12,7 +12,7 @@ canvas { position: fixed; inset: 0; z-index: 0; }
 #prelude-content .locket { animation-delay: .35s; }
 #prelude-content p { margin: .4rem 0 0; color: #aebfc0; font: italic 1rem/1.5 Georgia, serif; animation-delay: 1.15s; }
 #prelude-content h1 { margin: 0; font: 500 min(2.4rem, 7cqi)/1.05 Georgia, serif; letter-spacing: 0; white-space: nowrap; animation-delay: 2s; }
-#prelude-continue { color: #aebfc0; padding: .65rem; font: 600 .66rem/1 system-ui, sans-serif; letter-spacing: .18rem; text-transform: uppercase; animation-delay: 2.75s; }
+#prelude-continue { color: #aebfc0; padding: .65rem; font: 800 .82rem/1 system-ui, sans-serif; letter-spacing: .18rem; text-transform: uppercase; animation-delay: 2.75s; }
 #prelude:hover #prelude-continue, #prelude:focus-visible #prelude-continue { color: #dffcff; }
 #prelude:focus-visible { outline: 1px solid #dffcff; outline-offset: -.6rem; }
 @keyframes prelude-reveal { to { opacity: 1; } }
@@ -175,6 +175,29 @@ canvas { position: fixed; inset: 0; z-index: 0; }
 .touch-half { display: flex; gap: .55rem; pointer-events: auto; }
 .touch-half button { width: 3.5rem; height: 3.5rem; border: 1px solid #8eaeb7; border-radius: 50%; color: #e7f1f0; background: #152832aa; font: 600 1.1rem/1 monospace; touch-action: none; }
 .touch-half button:active { color: #102027; background: #c2dde0; }
+/* Warm limestone palette for menus and reading surfaces. */
+body, #start, #guide, #records { background: #d8d0c2; }
+#prelude, #ending.intro { background: #c8b9a6; }
+#prelude-content, #guide-content, #records-content, #restart-dialog-panel, #ending:not(.cinematic) { color: #263538; }
+#prelude-content p, #prelude-continue, #controls, .guide-objective, .guide-example-grid p, .guide-grid p, #viverse-avatar-status, #leaderboard-status, #records-status, .records-list .records-empty { color: #68706b; }
+#prelude:hover #prelude-continue, #prelude:focus-visible #prelude-continue { color: #a95f45; }
+#prelude:focus-visible { outline-color: #a95f45; }
+#guide h1, #records-content h1, .guide-example-grid strong, .guide-grid h3, #ending:not(.cinematic) #ending-message, #ending.intro #ending-message { color: #263538; }
+.guide-kicker, .guide-section > h2, .records-page h2 { color: #a95f45; }
+.guide-example-grid figure, .guide-grid, .guide-example-grid img, .guide-grid article, .records-list li { border-color: #b8aa99; }
+.guide-example-grid figure, #restart-dialog-panel { background: #efe7d9; }
+.guide-grid kbd, .guide-mark { color: #263538; border-color: #a9957f; }
+.guide-mark { color: #8f4e3c; border-color: #b77a5d; }
+#records-content { border-color: #a95f45; box-shadow: 0 .8rem 2.5rem #6d584433; }
+#records-close, #restart-dialog-close { color: #68706b; }
+#records-close:hover, #records-close:focus-visible, #restart-dialog-close:hover, #restart-dialog-close:focus-visible { color: #263538; outline-color: #a95f45; }
+#pause { background: #564a40d9; }
+#pause button, #restart-dialog-actions button, #start-button, #guide-button, #viverse-avatar-button, #start-see-records-button, #guide-page-button, #guide-chapter-select, #chapter-back, #chapter-restart, #ending-return, #ending-restart, #spring-intro-start, #see-records-button, #submit-run-button, #records-page-button { color: #263538; border-color: #a9957f; }
+#pause button { color: #efe7d9; border-color: #dacbb9; }
+#start-button:hover, #start-button:focus-visible, #guide-button:hover, #guide-button:focus-visible, #viverse-avatar-button:hover, #viverse-avatar-button:focus-visible, #start-see-records-button:hover, #start-see-records-button:focus-visible, #guide-page-button:hover, #guide-page-button:focus-visible, #guide-chapter-select:hover, #guide-chapter-select:focus-visible, #chapter-back:hover, #chapter-back:focus-visible, #chapter-restart:hover, #chapter-restart:focus-visible, #pause button:hover, #pause button:focus-visible, #ending-return:hover, #ending-return:focus-visible, #ending-restart:hover, #ending-restart:focus-visible, #spring-intro-start:hover, #spring-intro-start:focus-visible, #see-records-button:hover, #see-records-button:focus-visible, #submit-run-button:hover, #submit-run-button:focus-visible, #records-page-button:hover, #records-page-button:focus-visible, #restart-dialog-actions button:hover, #restart-dialog-actions button:focus-visible { color: #fffaf2; background: #a95f45; border-color: #a95f45; }
+#ending:not(.cinematic) { background: #d8d0c2; }
+#ending:not(.cinematic) p, #ending #key-count { color: #68706b; }
+
 @media (hover: none), (pointer: coarse) { #touch-controls { display: flex; } }
 @media (max-width: 700px) {
 	#start.chapter-selection #start-content { width: min(34rem, calc(100vw - 2rem)); gap: .85rem; }
