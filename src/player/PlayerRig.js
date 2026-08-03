@@ -3,6 +3,17 @@ import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js'
 import { VRMLoaderPlugin, VRMUtils } from '@pixiv/three-vrm'
 
 const WANDERER_MODEL_URL = `${import.meta.env.BASE_URL}models/player/wanderer.glb`
+// Both the default wanderer model and any swapped-in VIVERSE avatar are scaled to a fixed world
+// height on load (see loadWandererModel/setAvatar below).
+const DEFAULT_CHARACTER_HEIGHT = 1.65
+const AVATAR_CHARACTER_HEIGHT = 4
+// Extra world-space height a carried block should render at while an avatar (with the raised-arm
+// carry pose from poseAvatar) is active, so the block sits just above the raised hands instead of
+// at the default model's fixed carry height. Tuned empirically against the raised-hand carry pose
+// (not derived from AVATAR_CHARACTER_HEIGHT - DEFAULT_CHARACTER_HEIGHT: that overshoots, since a
+// raised-arm reach is much shorter than the avatar's full extra height) — verified with a
+// screenshot-driven check (measured hand position vs. rendered block position), not guessed.
+const AVATAR_CARRY_HEIGHT_BONUS = .2
 
 export class PlayerRig {
   constructor() {
@@ -62,7 +73,7 @@ export class PlayerRig {
       const bounds = new THREE.Box3().setFromObject(model)
       const size = bounds.getSize(new THREE.Vector3())
       if (size.y <= 0) throw new Error('Wanderer model has no visible height.')
-      const scale = 1.65 / size.y
+      const scale = DEFAULT_CHARACTER_HEIGHT / size.y
       model.scale.setScalar(scale)
       model.updateMatrixWorld(true)
       const scaledBounds = new THREE.Box3().setFromObject(model)
@@ -115,7 +126,7 @@ export class PlayerRig {
     if (size.y <= 0) throw new Error('The selected VIVERSE avatar has no visible height.')
 
     // This changes only the mesh. Player.body remains the fixed collision hitbox.
-    const scale = 4 / size.y
+    const scale = AVATAR_CHARACTER_HEIGHT / size.y
     gltf.scene.scale.setScalar(scale)
     gltf.scene.updateMatrixWorld(true)
     const scaledBounds = new THREE.Box3().setFromObject(gltf.scene)
@@ -165,28 +176,44 @@ export class PlayerRig {
     })
   }
 
-  poseAvatar(moving, grounded, verticalSpeed, time) {
+  poseAvatar(moving, grounded, verticalSpeed, time, carrying) {
     const bones = this.avatarBones
     if (!bones) return
     const stride = Math.sin(time * 13) * moving
     const airborne = !grounded
     const armLift = airborne ? .2 : 0
 
-    // VRM avatars commonly arrive in an A/T-pose; lower the arms first, then swing them with movement.
-    this.rotateAvatarBone(bones.leftUpperArm, [
-      { axis: new THREE.Vector3(0, 0, 1), angle: 1.05 - armLift },
-      { axis: new THREE.Vector3(1, 0, 0), angle: -stride * .52, space: 'parent' },
-    ])
-    this.rotateAvatarBone(bones.rightUpperArm, [
-      { axis: new THREE.Vector3(0, 0, 1), angle: -1.05 + armLift },
-      { axis: new THREE.Vector3(1, 0, 0), angle: stride * .52, space: 'parent' },
-    ])
-    this.rotateAvatarBone(bones.leftLowerArm, [{ axis: new THREE.Vector3(1, 0, 0), angle: -.12 + Math.max(0, stride) * .22 }])
-    this.rotateAvatarBone(bones.rightLowerArm, [{ axis: new THREE.Vector3(1, 0, 0), angle: -.12 + Math.max(0, -stride) * .22 }])
+    if (carrying) {
+      // Hold pose: both arms raised past horizontal (same Z axis the idle/walk pose below uses to
+      // lower the arms from T-pose — a negative angle here raises them the other way, toward
+      // overhead) with a bent elbow, as if supporting a block from underneath at head height,
+      // matching where Interactables.js's Box renders while carried.
+      this.rotateAvatarBone(bones.leftUpperArm, [{ axis: new THREE.Vector3(0, 0, 1), angle: -1.3 }])
+      this.rotateAvatarBone(bones.rightUpperArm, [{ axis: new THREE.Vector3(0, 0, 1), angle: 1.3 }])
+      this.rotateAvatarBone(bones.leftLowerArm, [{ axis: new THREE.Vector3(1, 0, 0), angle: -.4 }])
+      this.rotateAvatarBone(bones.rightLowerArm, [{ axis: new THREE.Vector3(1, 0, 0), angle: -.4 }])
+    } else {
+      // VRM avatars commonly arrive in an A/T-pose; lower the arms first, then swing them with movement.
+      this.rotateAvatarBone(bones.leftUpperArm, [
+        { axis: new THREE.Vector3(0, 0, 1), angle: 1.05 - armLift },
+        { axis: new THREE.Vector3(1, 0, 0), angle: -stride * .52, space: 'parent' },
+      ])
+      this.rotateAvatarBone(bones.rightUpperArm, [
+        { axis: new THREE.Vector3(0, 0, 1), angle: -1.05 + armLift },
+        { axis: new THREE.Vector3(1, 0, 0), angle: stride * .52, space: 'parent' },
+      ])
+      this.rotateAvatarBone(bones.leftLowerArm, [{ axis: new THREE.Vector3(1, 0, 0), angle: -.12 + Math.max(0, stride) * .22 }])
+      this.rotateAvatarBone(bones.rightLowerArm, [{ axis: new THREE.Vector3(1, 0, 0), angle: -.12 + Math.max(0, -stride) * .22 }])
+    }
     this.rotateAvatarBone(bones.leftUpperLeg, [{ axis: new THREE.Vector3(1, 0, 0), angle: airborne ? -.3 : -stride * .45 }])
     this.rotateAvatarBone(bones.rightUpperLeg, [{ axis: new THREE.Vector3(1, 0, 0), angle: airborne ? -.3 : stride * .45 }])
     this.rotateAvatarBone(bones.spine, [{ axis: new THREE.Vector3(0, 0, 1), angle: airborne ? Math.sign(verticalSpeed) * -.08 : 0 }])
   }
+
+  // Extra world-space height a carried block should render at while this rig's active model is
+  // the (taller) VIVERSE avatar rather than the default wanderer, so it clears the head/hands
+  // instead of the fixed offset tuned for the shorter default model. See Interactables.js's Box.
+  getCarryHeightBonus() { return this.avatar ? AVATAR_CARRY_HEIGHT_BONUS : 0 }
 
   useDefaultTraveler() {
     this.avatarRoot.clear()
@@ -199,7 +226,7 @@ export class PlayerRig {
     this.fallback.visible = !this.modelRoot.visible
   }
 
-  update(x, y, speed, facing, time, grounded = false, verticalSpeed = 0, landingSquash = 0, pushing = false) {
+  update(x, y, speed, facing, time, grounded = false, verticalSpeed = 0, landingSquash = 0, pushing = false, carrying = false) {
     this.root.position.set(x, y - .9, 0)
     this.root.scale.x = 1
     this.root.scale.y = 1 - landingSquash * .1
@@ -216,7 +243,7 @@ export class PlayerRig {
     if (this.avatar) {
       this.avatarRoot.rotation.y = facing > 0 ? -Math.PI / 2 : Math.PI / 2
       this.avatarRoot.position.y = idle
-      this.poseAvatar(moving, grounded, verticalSpeed, time)
+      this.poseAvatar(moving, grounded, verticalSpeed, time, carrying)
       this.avatar.update(1 / 60)
     } else if (this.mixer) {
       this.modelRoot.rotation.y = facing > 0 ? Math.PI / 2 : -Math.PI / 2

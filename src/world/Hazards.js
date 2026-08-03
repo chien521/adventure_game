@@ -4,7 +4,7 @@ import { createModelSlot } from '../core/AssetLoader.js'
 
 // Natural bounding size (world units) of the replacement glTF model, measured once from its
 // accessor bounds — used below to scale the model to match this game's previous primitive dimensions.
-const NATURAL = { spikeBlock: { w: .9, h: .9 } }
+export const NATURAL = { spikeBlock: { w: .9, h: .9 }, movingBlock: { w: 1, h: .3 } }
 
 // Left as a plain translucent volume on purpose: this is a trigger-zone indicator (an invisible/
 // semi-transparent hazard boundary), not a physical prop, so no model in the fetched packs is a
@@ -65,7 +65,10 @@ export class Searchlight {
 export class Crusher {
   // minY is the lowest point of the stroke (default tuned for ground level); raise it for
   // crushers hanging over elevated platforms so the head doesn't punch through the floor below.
-  constructor(scene, { x, y, w, minY = 1.05, phase = Math.PI / 2 }, color = '#8a5a2e') {
+  // model lets a call site swap the visual for cases where a Crusher is reused as a plain moving
+  // platform rather than an actual crushing hazard (see autumn's loadWorks) — the spiky default
+  // reads as dangerous, which is wrong for something the player is meant to stand on safely.
+  constructor(scene, { x, y, w, minY = 1.05, phase = Math.PI / 2 }, color = '#8a5a2e', model = { path: '/models/platformer/spike-block.glb', natural: NATURAL.spikeBlock }) {
     this.x = x
     this.y = y
     this.w = w
@@ -75,9 +78,9 @@ export class Crusher {
     this.height = this.positionAt(0)
     this.body = { x, y: this.height, w, h: 1.1 }
     const fallback = new THREE.Mesh(new THREE.BoxGeometry(w, 1.1, .9), new THREE.MeshStandardMaterial({ color, roughness: .85 }))
-    this.mesh = createModelSlot(fallback, '/models/platformer/spike-block.glb', {
+    this.mesh = createModelSlot(fallback, model.path, {
       tintColor: color,
-      scale: { x: w / NATURAL.spikeBlock.w, y: 1.1 / NATURAL.spikeBlock.h, z: w / NATURAL.spikeBlock.w },
+      scale: { x: w / model.natural.w, y: 1.1 / model.natural.h, z: w / model.natural.w },
     })
     scene.add(this.mesh)
     this.sync()

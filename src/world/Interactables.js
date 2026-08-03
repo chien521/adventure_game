@@ -57,7 +57,7 @@ export class Box {
         input.actionPressed = false
       } else {
         this.body.x = player.body.x
-        this.body.y = player.body.y + player.body.hh + this.body.h / 2 + .1
+        this.body.y = player.body.y + player.body.hh + this.body.h / 2 + .1 + (player.rig.getCarryHeightBonus?.() || 0)
       }
       this.sync()
       return false

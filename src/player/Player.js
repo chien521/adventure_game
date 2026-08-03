@@ -134,7 +134,7 @@ export class Player {
 
     this.landingSquash = Math.max(0, this.landingSquash - dt * 5)
     this.updateDust(dt)
-    this.rig.update(this.body.x, this.body.y, this.body.vx, this.facing, this.time, this.body.grounded, this.body.vy, this.landingSquash, this.pushing)
+    this.rig.update(this.body.x, this.body.y, this.body.vx, this.facing, this.time, this.body.grounded, this.body.vy, this.landingSquash, this.pushing, Boolean(this.carriedBox))
   }
 
   reset(position) {

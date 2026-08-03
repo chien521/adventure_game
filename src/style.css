@@ -130,6 +130,7 @@ canvas { position: fixed; inset: 0; z-index: 0; }
 .viverse-avatar-button:hover, .viverse-avatar-button:focus-visible { color: #101820; background: #d8e8e8; outline: none; }
 #viverse-avatar-status { min-height: 1rem; margin: 0; color: #86b8bd; font: 500 .7rem/1.35 system-ui, sans-serif; letter-spacing: .03rem; text-align: center; }
 #leaderboard-panel { display: grid; justify-items: center; gap: .5rem; margin-top: 1.2rem; }
+#leaderboard-panel[hidden] { display: none; }
 #leaderboard-status { min-height: 1rem; margin: 0; color: #86b8bd; font: 500 .7rem/1.35 system-ui, sans-serif; letter-spacing: .03rem; text-align: center; }
 #leaderboard-list { list-style: none; margin: 0; padding: 0; max-height: 9rem; overflow-y: auto; width: min(22rem, 90vw); color: #d8e8e8; font: 500 .8rem/1.6 system-ui, sans-serif; }
 #leaderboard-list li { border-bottom: 1px solid #2c3f45; padding: .2rem 0; }

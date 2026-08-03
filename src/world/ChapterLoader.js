@@ -1,6 +1,6 @@
 import * as THREE from 'three'
 import { Box, Door, Lever, PressurePlate } from './Interactables.js'
-import { KillVolume, Searchlight, Crusher } from './Hazards.js'
+import { KillVolume, Searchlight, Crusher, NATURAL } from './Hazards.js'
 import { buildOutskirtsAmbient, buildWorksAmbient } from './Ambient.js'
 
 export class ChapterLoader {
@@ -268,7 +268,9 @@ export class ChapterLoader {
     const key = this.createKey(chapter, collectedKeys)
 
     // Climb the flying blocks, then choose the upper exit route or drop to the lower key route.
-    const crushers = chapter.crushers.map((crusher) => new Crusher(this.group, crusher, '#8a5a2e'))
+    // These are Crusher instances reused purely as moving platforms (never hazards here — see
+    // Crusher's `model` param), so they use the plain moving-block model, not the spiky default.
+    const crushers = chapter.crushers.map((crusher) => new Crusher(this.group, crusher, '#8a5a2e', { path: '/models/platformer/block-moving.glb', natural: NATURAL.movingBlock }))
     let floatingRouteOrigin = null
     let routeBeforeFloatingBlocks = 'left'
     const exitPortal = this.exitPortal
