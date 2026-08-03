@@ -17,15 +17,26 @@ The game is built with [Three.js](https://threejs.org/) and [Vite](https://vitej
 
 ## Screenshots
 
-| Spring: the floodline | Summer: the outskirts |
+| Spring: Home Falls Behind | Summer: Two Shadows Linger |
 | --- | --- |
 | ![Spring chapter](public/chapter-spring.png) | ![Summer chapter](public/chapter-summer.png) |
-| Autumn: the works | Winter: the core |
+| Autumn: One Shadow Remains | Winter: Snow Remembers Home |
 | ![Autumn chapter](public/chapter-autumn.png) | ![Winter chapter](public/chapter-winter.png) |
 
 ## Story And Goal
 
-The traveler begins with only a feeling that something is owed. Moving through the four seasons leads toward a final exit, while hidden memory keys offer another way to understand what happened. Reaching each chapter's portal advances the journey; collecting keys is optional, but each recovered memory changes the final reflection.
+The Traveler wakes in a landscape of snow with only one certainty: something has been left unfinished. His path moves through spring, summer, autumn, and winter, but the journey is not simply across four places. It is a walk backward through a life, from childhood departure to companionship, loss, and the quiet approach to home.
+
+Nothing is explained during play. Instead, the story lives in recurring thresholds, distant silhouettes, changing routes, and the house that gradually comes into view. Snow marks the present moment; the locket records the Traveler's willingness to remember. Reaching each chapter's portal advances the journey, while the optional memory keys restore fragments of what he has spent a lifetime trying not to face.
+
+### A Life In Four Seasons
+
+- **Spring — Beginning:** A child leaves the small world that first held him and steps into something larger alone.
+- **Summer — Bloom:** Warmth, companionship, and a memory of being seen by someone who made the world feel shared.
+- **Autumn — Falling:** The familiar world changes through absence, and the Traveler learns the shape of a goodbye.
+- **Winter — Stillness:** With the journey nearing its end, the house becomes clearer: a place that may be home, rest, or both.
+
+The keys never gate progress. They change only what the Traveler can understand at the end, making remembrance a choice rather than a requirement.
 
 ## How To Play
 
