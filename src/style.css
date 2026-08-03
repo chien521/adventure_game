@@ -108,6 +108,10 @@ canvas { position: fixed; inset: 0; z-index: 0; }
 #ending.intro #ending-restart { display: block; margin: 1rem 0; opacity: 0; pointer-events: none; transition: opacity .5s ease; }
 #ending.intro.intro-ready #ending-restart { opacity: 1; pointer-events: auto; }
 #ending-restart:hover, #ending-restart:focus-visible { color: #101820; background: #d8e8e8; outline: none; }
+#see-records-button, #submit-run-button { display: none; margin: 0 0 1rem; min-height: 2.7rem; color: #aebfc0; background: transparent; border: 1px solid #4f6870; padding: .55rem 1rem; font: 500 .8rem/1 system-ui, sans-serif; letter-spacing: .08rem; text-transform: uppercase; cursor: pointer; }
+#ending:not(.cinematic) #see-records-button, #ending:not(.cinematic) #submit-run-button { display: block; }
+#submit-run-button[hidden] { display: none; }
+#see-records-button:hover, #see-records-button:focus-visible, #submit-run-button:hover, #submit-run-button:focus-visible { color: #101820; background: #d8e8e8; outline: none; }
 #ending .locket { margin-bottom: 1rem; transform: scale(1.35); }
 #ending #key-count { margin-top: .75rem; color: #72878b; font-size: .68rem; text-transform: uppercase; }
 #ending.intro { z-index: 8; align-content: start; overflow-y: auto; box-sizing: border-box; padding: clamp(2rem, 7vh, 5rem) 1.5rem; background: #000; opacity: 1; pointer-events: auto; transition: none; }
@@ -133,12 +137,21 @@ canvas { position: fixed; inset: 0; z-index: 0; }
 .viverse-avatar-button { min-height: 2.8rem; color: #aebfc0; background: transparent; border: 1px solid #4f6870; padding: .7rem 1.25rem; font: 600 .9rem/1 system-ui, sans-serif; letter-spacing: .08rem; text-transform: uppercase; cursor: pointer; }
 .viverse-avatar-button:hover, .viverse-avatar-button:focus-visible { color: #101820; background: #d8e8e8; outline: none; }
 #viverse-avatar-status { min-height: 1rem; margin: 0; color: #86b8bd; font: 500 .7rem/1.35 system-ui, sans-serif; letter-spacing: .03rem; text-align: center; }
-#leaderboard-panel { display: grid; justify-items: center; gap: .5rem; margin-top: 1.2rem; }
-#leaderboard-panel[hidden] { display: none; }
-#leaderboard-status { min-height: 1rem; margin: 0; color: #86b8bd; font: 500 .7rem/1.35 system-ui, sans-serif; letter-spacing: .03rem; text-align: center; }
-#leaderboard-list { list-style: none; margin: 0; padding: 0; max-height: 9rem; overflow-y: auto; width: min(22rem, 90vw); color: #d8e8e8; font: 500 .8rem/1.6 system-ui, sans-serif; }
-#leaderboard-list li { border-bottom: 1px solid #2c3f45; padding: .2rem 0; }
-#start-button, #guide-button, #viverse-avatar-button, #guide-page-button, #guide-chapter-select, #chapter-back, #chapter-restart, #pause button, #ending-return, #ending-restart, #spring-intro-start, #leaderboard-submit, #restart-dialog-actions button {
+#records { position: fixed; inset: 0; z-index: 6; display: none; box-sizing: border-box; place-items: center; overflow-y: auto; padding: 1.5rem 0; background: #101820; }
+#records.visible { display: grid; }
+#records-content { position: relative; width: min(28rem, calc(100vw - 2.5rem)); display: grid; justify-items: center; gap: 1.1rem; color: #d8e8e8; }
+#records-content h1 { margin: 0; font: 500 clamp(1.4rem, 4vw, 1.9rem)/1 Georgia, serif; letter-spacing: 0; }
+#records-close { position: absolute; top: -.5rem; right: 0; width: 2rem; height: 2rem; color: #aebfc0; background: transparent; border: 0; font: 1.5rem/1 system-ui, sans-serif; cursor: pointer; }
+#records-close:hover, #records-close:focus-visible { color: #d8e8e8; outline: 1px solid #7e9ca4; }
+#records-status { min-height: 1rem; margin: 0; color: #86b8bd; font: 500 .7rem/1.35 system-ui, sans-serif; letter-spacing: .03rem; text-align: center; }
+.records-pages { display: grid; width: 100%; }
+.records-page { grid-area: 1 / 1; display: grid; width: 100%; gap: .65rem; justify-items: center; visibility: hidden; opacity: 0; pointer-events: none; }
+.records-page.visible { visibility: visible; opacity: 1; pointer-events: auto; animation: guide-page-down .32s ease both; }
+.records-page h2 { margin: 0; color: #86b8bd; font: 600 .68rem/1 system-ui, sans-serif; letter-spacing: .14rem; text-transform: uppercase; }
+.records-list { list-style: none; margin: 0; padding: 0; max-height: 14rem; overflow-y: auto; width: min(24rem, 90vw); color: #d8e8e8; font: 500 .8rem/1.6 system-ui, sans-serif; }
+.records-list li { border-bottom: 1px solid #2c3f45; padding: .2rem 0; }
+.records-list .records-empty { color: #72878b; text-align: center; }
+#start-button, #guide-button, #viverse-avatar-button, #guide-page-button, #guide-chapter-select, #chapter-back, #chapter-restart, #pause button, #ending-return, #ending-restart, #spring-intro-start, #see-records-button, #submit-run-button, #records-page-button, #restart-dialog-actions button {
 	box-sizing: border-box;
 	width: min(18rem, calc(100vw - 3rem));
 	min-height: 3rem;

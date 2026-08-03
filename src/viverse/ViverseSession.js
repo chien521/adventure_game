@@ -44,6 +44,31 @@ function clearPending() {
   catch { }
 }
 
+const extractRows = (res) => res?.rankings || res?.ranking || res?.leaderboard_rankings
+  || res?.data?.rankings || res?.data?.ranking || res?.leaderboard?.rankings || res?.leaderboard?.ranking || []
+
+// The VIVERSE leaderboard API returns a 0-based `rank` field; add 1 for display, falling back to
+// array index only when `rank` is absent (not just falsy — rank 0 is a valid "#1" value).
+const normalizeRows = (rows) => rows.map((row, index) => ({
+  ...row,
+  rank: typeof row.rank === 'number' ? row.rank + 1 : index + 1,
+}))
+
+async function queryRankings(fetchPage, leaderboardName, limit) {
+  const configs = [
+    { name: leaderboardName, range_start: 0, range_end: limit - 1, region: 'global', time_range: 'alltime', around_user: false },
+    { name: leaderboardName, range_start: 0, range_end: limit - 1, region: 'global', time_range: 'alltime', around_user: true },
+    { name: leaderboardName, range_start: 0, range_end: limit - 1, region: 'local', time_range: 'alltime', around_user: false },
+  ]
+  for (const config of configs) {
+    try {
+      const rows = extractRows(await fetchPage(config))
+      if (rows.length > 0) return normalizeRows(rows)
+    } catch { }
+  }
+  return []
+}
+
 export class ViverseSession {
   constructor() {
     this.sdk = null
@@ -159,21 +184,37 @@ export class ViverseSession {
     if (!leaderboardName) return []
     const dashboard = await this.getDashboardClient()
     if (!dashboard) return []
-    const configs = [
-      { name: leaderboardName, range_start: 0, range_end: limit - 1, region: 'global', time_range: 'alltime', around_user: false },
-      { name: leaderboardName, range_start: 0, range_end: limit - 1, region: 'global', time_range: 'alltime', around_user: true },
-      { name: leaderboardName, range_start: 0, range_end: limit - 1, region: 'local', time_range: 'alltime', around_user: false },
-    ]
-    const extract = (res) => res?.rankings || res?.ranking || res?.leaderboard_rankings
-      || res?.data?.rankings || res?.data?.ranking || res?.leaderboard?.rankings || res?.leaderboard?.ranking || []
-    for (const config of configs) {
+    return queryRankings((config) => dashboard.getLeaderboard(this.appId, config), leaderboardName, limit)
+  }
+
+  /**
+   * Reads rankings without requiring login, for players who just want to see times. Tries the
+   * flat guest functions the SDK exposes on its root namespace first (no token needed, per the
+   * "verified production SDK shape" notes), then falls back to a token-less gameDashboard client.
+   * Both paths are genuinely unconfirmed against a live deployment — if neither works in practice
+   * this resolves to [] and the caller should show an "unavailable without logging in" status.
+   */
+  async fetchLeaderboardAsGuest(leaderboardName, limit = 10) {
+    if (!leaderboardName) return []
+    const ready = await this.ensureReady()
+    if (!ready) return []
+
+    const flatGuestFn = this.sdk?.getGuestLeaderboardRanking || this.sdk?.getLeaderboardRanking
+    if (typeof flatGuestFn === 'function') {
+      const rows = await queryRankings((config) => flatGuestFn(this.appId, config), leaderboardName, limit)
+      if (rows.length > 0) return rows
+    }
+
+    const DashboardClass = this.sdk?.gameDashboard || this.sdk?.GameDashboard
+    if (DashboardClass) {
       try {
-        const rows = extract(await dashboard.getLeaderboard(this.appId, config))
-        if (rows.length > 0) {
-          return rows.map((row, index) => ({
-            ...row,
-            rank: typeof row.rank === 'number' ? row.rank + 1 : index + 1,
-          }))
+        const dashboard = new DashboardClass({
+          clientId: this.appId,
+          baseURL: DASHBOARD_BASE_URL,
+          communityBaseURL: DASHBOARD_COMMUNITY_BASE_URL,
+        })
+        if (typeof dashboard.getGuestLeaderboard === 'function') {
+          return await queryRankings((config) => dashboard.getGuestLeaderboard(this.appId, config), leaderboardName, limit)
         }
       } catch { }
     }

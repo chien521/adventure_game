@@ -371,23 +371,22 @@ const ALL_KEYS_LEADERBOARD = import.meta.env.VITE_VIVERSE_LEADERBOARD_ALL_KEYS
 const ANY_COMPLETION_LEADERBOARD = import.meta.env.VITE_VIVERSE_LEADERBOARD_ANY_COMPLETION
 
 async function submitRunToLeaderboards({ elapsedSeconds, allKeys }) {
-  leaderboardSubmitButton.hidden = true
-  leaderboardStatus.textContent = 'Connecting to VIVERSE...'
+  submitRunButton.disabled = true
   const auth = await viverseSession.ensureLogin({ reason: 'leaderboard', elapsedSeconds, allKeys })
   if (!auth) return // page is redirecting to VIVERSE login
-  leaderboardStatus.textContent = 'Submitting your run...'
+  setRecordsPage(allKeys ? 2 : 1)
+  setRecordsVisible(true)
+  recordsStatus.textContent = 'Submitting your run...'
   const value = Math.round(elapsedSeconds)
   const uploads = [viverseSession.submitScore(ANY_COMPLETION_LEADERBOARD, value)]
   if (allKeys) uploads.push(viverseSession.submitScore(ALL_KEYS_LEADERBOARD, value))
   const results = await Promise.all(uploads)
+  submitRunButton.disabled = false
   if (!results.every(Boolean)) {
-    leaderboardStatus.textContent = 'Could not submit your run right now.'
-    leaderboardSubmitButton.hidden = false
+    recordsStatus.textContent = 'Could not submit your run right now.'
     return
   }
-  leaderboardStatus.textContent = 'Run submitted.'
-  const rows = await viverseSession.fetchLeaderboard(allKeys ? ALL_KEYS_LEADERBOARD : ANY_COMPLETION_LEADERBOARD)
-  leaderboardList.innerHTML = rows.map((row) => `<li>#${row.rank} ${row.name || row.displayName || 'VIVERSE Player'} — ${row.value}s</li>`).join('')
+  await loadRecords()
 }
 
 let lastRunSummary = null
@@ -406,12 +405,10 @@ function finish() {
   requestAnimationFrame(() => endingElement.classList.add('story-visible'))
 
   const allChapters = visitedSeasons.size === 4
-  leaderboardPanel.hidden = !allChapters
+  submitRunButton.hidden = !allChapters
   if (allChapters) {
     lastRunSummary = { elapsedSeconds: elapsedRunTime() / 1000, allKeys: keyCount === 4 }
-    leaderboardSubmitButton.hidden = false
-    leaderboardStatus.textContent = ''
-    leaderboardList.innerHTML = ''
+    submitRunButton.disabled = false
   }
 }
 
@@ -600,21 +597,67 @@ endingRestartButton.id = 'ending-restart'
 endingRestartButton.type = 'button'
 endingRestartButton.textContent = 'restart the journey'
 document.querySelector('#ending-return').after(endingRestartButton)
-const leaderboardPanel = document.createElement('div')
-leaderboardPanel.id = 'leaderboard-panel'
-leaderboardPanel.hidden = true
-const leaderboardSubmitButton = document.createElement('button')
-leaderboardSubmitButton.id = 'leaderboard-submit'
-leaderboardSubmitButton.type = 'button'
-leaderboardSubmitButton.textContent = 'submit to VIVERSE leaderboard'
-const leaderboardStatus = document.createElement('p')
-leaderboardStatus.id = 'leaderboard-status'
-leaderboardStatus.setAttribute('aria-live', 'polite')
-const leaderboardList = document.createElement('ol')
-leaderboardList.id = 'leaderboard-list'
-leaderboardPanel.append(leaderboardSubmitButton, leaderboardStatus, leaderboardList)
-endingRestartButton.after(leaderboardPanel)
-leaderboardSubmitButton.addEventListener('click', () => {
+const seeRecordsButton = document.createElement('button')
+seeRecordsButton.id = 'see-records-button'
+seeRecordsButton.type = 'button'
+seeRecordsButton.textContent = 'see records'
+const submitRunButton = document.createElement('button')
+submitRunButton.id = 'submit-run-button'
+submitRunButton.type = 'button'
+submitRunButton.textContent = 'submit my run'
+submitRunButton.hidden = true
+endingRestartButton.after(seeRecordsButton)
+seeRecordsButton.after(submitRunButton)
+
+const records = document.createElement('section')
+records.id = 'records'
+records.setAttribute('aria-hidden', 'true')
+records.setAttribute('aria-label', 'VIVERSE records')
+records.innerHTML = '<div id="records-content"><button id="records-close" type="button" aria-label="Close records">&times;</button><h1>VIVERSE Records</h1><p id="records-status" aria-live="polite"></p><div class="records-pages"><div class="records-page visible"><h2>Fastest Full Run</h2><ol class="records-list" id="records-list-any"></ol></div><div class="records-page"><h2>Fastest With All 4 Keys</h2><ol class="records-list" id="records-list-keys"></ol></div></div><button id="records-page-button" type="button">next</button></div>'
+app.append(records)
+const recordsPages = records.querySelectorAll('.records-page')
+const recordsPageButton = records.querySelector('#records-page-button')
+const recordsCloseButton = records.querySelector('#records-close')
+const recordsStatus = records.querySelector('#records-status')
+const recordsListAny = records.querySelector('#records-list-any')
+const recordsListKeys = records.querySelector('#records-list-keys')
+
+const setRecordsPage = (page) => {
+  recordsPages[0].classList.toggle('visible', page === 1)
+  recordsPages[1].classList.toggle('visible', page === 2)
+  recordsPageButton.textContent = page === 2 ? 'back' : 'next'
+}
+recordsPageButton.addEventListener('click', () => setRecordsPage(recordsPages[1].classList.contains('visible') ? 1 : 2))
+
+const renderRecordsList = (listElement, rows) => {
+  listElement.innerHTML = rows.length
+    ? rows.map((row) => `<li>#${row.rank} ${row.name || row.displayName || 'VIVERSE Player'} — ${row.value}s</li>`).join('')
+    : '<li class="records-empty">No times yet.</li>'
+}
+async function loadRecords() {
+  recordsStatus.textContent = 'Loading records...'
+  const [anyRows, keyRows] = await Promise.all([
+    viverseSession.fetchLeaderboardAsGuest(ANY_COMPLETION_LEADERBOARD),
+    viverseSession.fetchLeaderboardAsGuest(ALL_KEYS_LEADERBOARD),
+  ])
+  renderRecordsList(recordsListAny, anyRows)
+  renderRecordsList(recordsListKeys, keyRows)
+  recordsStatus.textContent = (anyRows.length || keyRows.length) ? '' : 'Records are unavailable without logging in.'
+}
+const setRecordsVisible = (visible) => {
+  records.classList.toggle('visible', visible)
+  records.setAttribute('aria-hidden', String(!visible))
+  if (visible) recordsCloseButton.focus()
+  else renderer.domElement.focus()
+}
+recordsCloseButton.addEventListener('click', () => setRecordsVisible(false))
+seeRecordsButton.addEventListener('click', () => {
+  setRecordsPage(1)
+  setRecordsVisible(true)
+  loadRecords()
+})
+
+submitRunButton.addEventListener('click', () => {
   if (!lastRunSummary) return
   submitRunToLeaderboards(lastRunSummary)
 })
