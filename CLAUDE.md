@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## What this is
 
-*What the Snow Remembers* — a browser-based 3D puzzle-platform adventure (Three.js + Vite, vanilla JS ES modules, no framework). Four chapters (spring/summer/autumn/winter), each a self-contained puzzle built from a small shared vocabulary of interactables (blocks, levers, doors, pressure plates, lifts) and hazards. Runs entirely client-side; ships to GitHub Pages. Live at https://chien521.github.io/adventure_game/.
+*What the Snow Remembers* — a browser-based 3D puzzle-platform adventure (Three.js + Vite, vanilla JS ES modules, no framework). Four chapters (spring/summer/autumn/winter), each a self-contained puzzle built from a small shared vocabulary of interactables (blocks, levers, doors, pressure plates, lifts) and hazards. Runs entirely client-side; ships to GitHub Pages. Live at https://chien521.github.io/What-the-Snow-Remembers/.
 
 ## Commands
 

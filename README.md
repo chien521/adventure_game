@@ -1,6 +1,6 @@
 # What the Snow Remembers
 
-**[Play the live demo](https://chien521.github.io/adventure_game/)**
+**[Play the live demo](https://chien521.github.io/What-the-Snow-Remembers/)**
 
 *What the Snow Remembers* is a browser-based 3D puzzle-platform adventure about crossing four changing landscapes and recovering fragments of a life that has been forgotten. Each season is a compact, hand-built challenge where blocks, triggers, doors, lifts, levers, and routes must be read as one connected machine.
 
